@@ -28,6 +28,8 @@
 // 显示广告
 - (void)showAdmobScene;
 - (void)showNativeScene;
+- (void)handleCompletedCourseBreakWithCompletion:(dispatch_block_t)completion;
+- (void)handleCompletedWordBreakWithCompletion:(dispatch_block_t)completion;
 - (BOOL)adIsCanShow;
 
 - (void)showHudAction;

@@ -11,7 +11,11 @@
 
 @import GoogleMobileAds;
 
-static NSInteger const kAdsTime = 7;
+// AdMob-compliant pacing:
+// Only evaluate interstitials at natural breaks such as lesson completion
+// or finishing a word task, and avoid back-to-back presentations.
+static NSInteger const kInterstitialBreakThreshold = 5;
+static NSTimeInterval const kInterstitialMinimumInterval = 120.0;
 static NSString * const kInterstitialAdUnitIDKey = @"AdmobInterstitialAdUnitID";
 static NSString * const kBannerAdUnitIDKey = @"AdmobBannerAdUnitID";
 static NSString * const kDebugTestDeviceIDKey = @"AdmobDebugTestDeviceID";
@@ -24,8 +28,10 @@ static NSString * const kDebugTestDeviceIDKey = @"AdmobDebugTestDeviceID";
 @property(nonatomic, strong) MBProgressHUD *hud;
 @property(nonatomic, strong) UIImageView *launchView;
 @property(nonatomic, assign) float hudRate;
-@property(nonatomic, assign) NSInteger showTime;
 @property(nonatomic, assign) BOOL isLoadingInterstitial;
+@property(nonatomic, assign) NSInteger completedBreakCount;
+@property(nonatomic, strong) NSDate *lastInterstitialDate;
+@property(nonatomic, copy) dispatch_block_t pendingCompletion;
 
 @end
 
@@ -97,8 +103,10 @@ static NSString * const kDebugTestDeviceIDKey = @"AdmobDebugTestDeviceID";
 
 - (void)preInit
 {
-    self.showTime = 1;
     self.hudRate = 10.0f;
+    self.completedBreakCount = 0;
+    self.lastInterstitialDate = nil;
+    self.pendingCompletion = nil;
 
 #if DEBUG
     NSString *testDeviceID = [AdmobManager debugTestDeviceID];
@@ -154,23 +162,43 @@ didFailToPresentFullScreenContentWithError:(NSError *)error
 {
     NSLog(@"Interstitial failed to present: %@", error.localizedDescription);
     self.interstitialAd = nil;
+    if (self.pendingCompletion) {
+        self.pendingCompletion();
+        self.pendingCompletion = nil;
+    }
     [self setInterstitial];
+}
+
+- (void)adWillPresentFullScreenContent:(id<GADFullScreenPresentingAd>)ad
+{
+    self.lastInterstitialDate = [NSDate date];
 }
 
 - (void)adDidDismissFullScreenContent:(id<GADFullScreenPresentingAd>)ad
 {
     self.interstitialAd = nil;
+    if (self.pendingCompletion) {
+        self.pendingCompletion();
+        self.pendingCompletion = nil;
+    }
     [self setInterstitial];
 }
 
 //static int adIndex = 0;
 #pragma mark -- 广告相关操作
-// 控制广告展示节奏
+// 保留旧接口，直接尝试展示。
 - (void)showNativeScene {
-    if (self.showTime > 0 && self.showTime % kAdsTime == 0) {
-        [[AdmobManager sharedInstance] showAdmobScene];
-    }
-    self.showTime++;
+    [[AdmobManager sharedInstance] showAdmobScene];
+}
+
+- (void)handleCompletedCourseBreakWithCompletion:(dispatch_block_t)completion
+{
+    [self handleCompletedNaturalBreakWithCompletion:completion];
+}
+
+- (void)handleCompletedWordBreakWithCompletion:(dispatch_block_t)completion
+{
+    [self handleCompletedNaturalBreakWithCompletion:completion];
 }
 
 - (BOOL)adIsCanShow
@@ -193,6 +221,50 @@ didFailToPresentFullScreenContentWithError:(NSError *)error
         return;
     }
     
+    [self.interstitialAd presentFromRootViewController:rootVC];
+}
+
+- (void)handleCompletedNaturalBreakWithCompletion:(dispatch_block_t)completion
+{
+    self.completedBreakCount += 1;
+    if (self.completedBreakCount < kInterstitialBreakThreshold) {
+        if (completion) {
+            completion();
+        }
+        return;
+    }
+
+    if (self.lastInterstitialDate) {
+        NSTimeInterval elapsed = [[NSDate date] timeIntervalSinceDate:self.lastInterstitialDate];
+        if (elapsed < kInterstitialMinimumInterval) {
+            if (completion) {
+                completion();
+            }
+            return;
+        }
+    }
+
+    UIViewController *rootVC = [self appRootViewController];
+    if (!rootVC || !self.interstitialAd) {
+        [self setInterstitial];
+        if (completion) {
+            completion();
+        }
+        return;
+    }
+
+    NSError *presentError = nil;
+    if (![self.interstitialAd canPresentFromRootViewController:rootVC error:&presentError]) {
+        NSLog(@"Interstitial can't present yet: %@", presentError.localizedDescription);
+        [self setInterstitial];
+        if (completion) {
+            completion();
+        }
+        return;
+    }
+
+    self.completedBreakCount = 0;
+    self.pendingCompletion = completion;
     [self.interstitialAd presentFromRootViewController:rootVC];
 }
 

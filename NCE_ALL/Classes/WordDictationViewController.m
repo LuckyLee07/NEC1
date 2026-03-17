@@ -245,7 +245,11 @@ static NSString* const kWordDictationViewControllerCellReuseId = @"kWordDictatio
 
 - (void)alertView:(UIView *)alertView customClickedButtonAtIndex:(NSInteger)buttonIndex
 {
-    [self.navigationController popViewControllerAnimated:YES];
+    __weak typeof(self) weakSelf = self;
+    [[AdmobManager sharedInstance] handleCompletedWordBreakWithCompletion:^{
+        __strong typeof(weakSelf) strongSelf = weakSelf;
+        [strongSelf.navigationController popViewControllerAnimated:YES];
+    }];
 }
 
 
@@ -307,11 +311,7 @@ static NSString* const kWordDictationViewControllerCellReuseId = @"kWordDictatio
     if (_hud) [_hud hideAnimated:YES];
     
     if (_currentIndex >= _items.count) {
-        if ([[AdmobManager sharedInstance] adIsCanShow]) {
-            [[AdmobManager sharedInstance] showNativeScene];
-        } else {
-            [self showResult];
-        }
+        [self showResult];
     } else {
         _scoreLabel.text = [NSString stringWithFormat:@"%d 分",_correctAnswers*100/(int)_items.count];
         _countLabel.text = [NSString stringWithFormat:@"%d / %d",_currentIndex+1, (int)_items.count];
@@ -427,4 +427,3 @@ static NSString* const kWordDictationViewControllerCellReuseId = @"kWordDictatio
 }
 
 @end
-

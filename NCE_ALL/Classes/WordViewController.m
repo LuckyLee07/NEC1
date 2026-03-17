@@ -21,8 +21,9 @@
     NSDictionary *_lesson;
     int _function; // 1：单词学习 2：词义回想 3：单词回想
     
-    AVAudioPlayer *_audioPlayer;
-    int _currentIndex;
+	    AVAudioPlayer *_audioPlayer;
+	    int _currentIndex;
+        BOOL _didHandleCompletionBreak;
     
     UIButton *_continueButton;
     UIButton *_pauseButton;
@@ -38,6 +39,7 @@
 - (void)initData;
 - (void)willShowWordInformation;
 - (void)showWordInformation;
+- (void)handleWordSessionCompletionIfNeeded;
 - (void)addBottomView:(CGFloat)startPosy;
 
 - (void)prev;
@@ -61,22 +63,24 @@
     if (self) {
         _bookId = bookId;
         _lesson = lesson;
-        _function = function;
-        [self initData];
-        
-        _currentIndex = 0;
-    }
-    return self;
+	        _function = function;
+	        [self initData];
+	        
+	        _currentIndex = 0;
+            _didHandleCompletionBreak = NO;
+	    }
+	    return self;
 }
 
 - (id)initWithData:(NSArray *)data withIndex:(int)index
 {
     self = [super init];
-    if (self) {
-        _items = [[NSMutableArray alloc] initWithArray:data];
-        _currentIndex = index;
-    }
-    return self;
+	    if (self) {
+	        _items = [[NSMutableArray alloc] initWithArray:data];
+	        _currentIndex = index;
+            _didHandleCompletionBreak = NO;
+	    }
+	    return self;
 }
 
 - (void)viewDidLoad {
@@ -129,6 +133,8 @@
 {
     if (_currentIndex < _items.count-1) {
         [self performSelector:@selector(next) withObject:nil afterDelay:5];
+    } else {
+        [self handleWordSessionCompletionIfNeeded];
     }
 }
 
@@ -182,7 +188,7 @@
     sqlite3_close(database);
 }
 
-- (void)showWordInformation
+	- (void)showWordInformation
 {
     NSDictionary *item = [_items objectAtIndex:_currentIndex];
     
@@ -218,6 +224,8 @@
         _audioPlayer = [[AVAudioPlayer alloc] initWithContentsOfURL:[NSURL fileURLWithPath:soundPath] error:nil];
         _audioPlayer.delegate = self;
         [_audioPlayer play];
+    } else if (_currentIndex >= _items.count-1) {
+        [self handleWordSessionCompletionIfNeeded];
     }
     
     if (_function) {
@@ -230,9 +238,6 @@
         self.navigationItem.rightBarButtonItem = [[UIBarButtonItem alloc] initWithCustomView:lessonLabel];
     }
     
-    if (_currentIndex >= _items.count-1) {
-        [[AdmobManager sharedInstance] showNativeScene];
-    }
 }
 
 - (void)addBottomView:(CGFloat)startPosy
@@ -417,6 +422,15 @@
     [NSObject cancelPreviousPerformRequestsWithTarget:self selector:@selector(next) object:nil];
     _continueButton.hidden = YES;
     _pauseButton.hidden = NO;
+}
+
+- (void)handleWordSessionCompletionIfNeeded
+{
+    if (_didHandleCompletionBreak || _currentIndex < _items.count-1) {
+        return;
+    }
+    _didHandleCompletionBreak = YES;
+    [[AdmobManager sharedInstance] handleCompletedWordBreakWithCompletion:nil];
 }
 
 - (void)signWord:(id)sender

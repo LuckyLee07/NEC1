@@ -21,11 +21,10 @@ static NSString* const kTextViewControllerCellReuseId = @"kTextViewControllerCel
     
     BOOL _showChinese;
     
-    NSMutableDictionary *_contentDictionary;
-    
-    AVAudioPlayer *_audioPlayer;
-    int _currentIndex;    
-    int _learnedCount;
+	    NSMutableDictionary *_contentDictionary;
+	    
+	    AVAudioPlayer *_audioPlayer;
+	    int _currentIndex;
     
     UIButton *_continueButton;
     UIButton *_pauseButton;
@@ -67,8 +66,7 @@ static NSString* const kTextViewControllerCellReuseId = @"kTextViewControllerCel
         
         _contentDictionary = [[NSMutableDictionary alloc] initWithCapacity:5];
         
-        _currentIndex = 0;
-        _learnedCount = 0;
+	        _currentIndex = 0;
     }
     return self;
 }
@@ -227,26 +225,20 @@ static NSString* const kTextViewControllerCellReuseId = @"kTextViewControllerCel
     
     if (_currentIndex < _items.count-1) {
         _currentIndex++;
-    } else {
-        NSDictionary *nextLesson = [self nextLessonDictionary];
-        if (nextLesson) {
-            [self continueToNextLesson:nextLesson];
-            return;
-        }
-        // Already the final lesson in this book; stop at the end instead of replaying.
+        NSIndexPath *next = [NSIndexPath indexPathForRow:_currentIndex inSection:0];
+        [self tableView:self.tableView didSelectRowAtIndexPath:next];
         return;
     }
-    
-    NSIndexPath *next = [NSIndexPath indexPathForRow:_currentIndex inSection:0];
-    [self tableView:self.tableView didSelectRowAtIndexPath:next];
-    
-    _learnedCount++;
-    if (_learnedCount == _items.count-1) {
-        _learnedCount = -1;
-        [[AdmobManager sharedInstance] showNativeScene];
-    } else if (_learnedCount == 7 && _items.count > 12) {
-        [[AdmobManager sharedInstance] showNativeScene];
-    }
+
+    NSDictionary *nextLesson = [self nextLessonDictionary];
+    __weak typeof(self) weakSelf = self;
+    [[AdmobManager sharedInstance] handleCompletedCourseBreakWithCompletion:^{
+        __strong typeof(weakSelf) strongSelf = weakSelf;
+        if (!strongSelf || !nextLesson) {
+            return;
+        }
+        [strongSelf continueToNextLesson:nextLesson];
+    }];
 }
 
 #pragma mark -
@@ -416,7 +408,6 @@ static NSString* const kTextViewControllerCellReuseId = @"kTextViewControllerCel
     [_contentDictionary removeAllObjects];
 
     _currentIndex = 0;
-    _learnedCount = 0;
     _contentSlider.maximumValue = MAX(0, (int)_items.count - 1);
     _contentSlider.value = 0.0f;
 
