@@ -14,7 +14,7 @@
 // AdMob-compliant pacing:
 // Only evaluate interstitials at natural breaks such as lesson completion
 // or finishing a word task, and avoid back-to-back presentations.
-static NSInteger const kInterstitialBreakThreshold = 5;
+static NSInteger const kInterstitialBreakThreshold = 4;
 static NSTimeInterval const kInterstitialMinimumInterval = 120.0;
 static NSString * const kInterstitialAdUnitIDKey = @"AdmobInterstitialAdUnitID";
 static NSString * const kBannerAdUnitIDKey = @"AdmobBannerAdUnitID";
