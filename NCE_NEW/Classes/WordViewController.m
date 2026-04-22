@@ -10,10 +10,8 @@
 #import "sqlite3.h"
 #import <AVFoundation/AVFoundation.h>
 #import "MBProgressHUD.h"
-#import "CKAlertView.h"
-#import "OnlineDictionaryViewController.h"
 
-@interface WordViewController () <AVAudioPlayerDelegate, CKAlertViewDelegate, UIAlertViewDelegate>
+@interface WordViewController () <AVAudioPlayerDelegate, UIAlertViewDelegate>
 {
     int _bookId;
     NSMutableArray *_items;
@@ -47,8 +45,6 @@
 - (void)showEnglish;
 - (void)showChinese;
 - (void)repeat;
-
-- (void)showOnlineDictionarys;
 
 @end
 
@@ -129,16 +125,6 @@
     if (_currentIndex < _items.count-1) {
         [self performSelector:@selector(next) withObject:nil afterDelay:5];
     }
-}
-
-#pragma mark -
-#pragma mark CKAlertViewDelegate
-
-- (void)alertView:(UIView *)alertView customClickedButtonAtIndex:(NSInteger)buttonIndex
-{
-    NSString *word = [[_items objectAtIndex:_currentIndex] objectForKey:@"english"];
-    OnlineDictionaryViewController *dictionaryController = [[OnlineDictionaryViewController alloc] initWithDictionaryId:(int)buttonIndex withWord:word];
-    [self.navigationController pushViewController:dictionaryController animated:YES];
 }
 
 #pragma mark -
@@ -303,16 +289,8 @@
     line.image = [UIImage imageNamed:@"line"];
     [backgroundView addSubview:line];
     
-    // share
-    UIButton *shareButton = [UIButton buttonWithType:UIButtonTypeCustom];
-    shareButton.frame = CGRectMake(0.f, yy+20.f, 50.f, 50.f);
-    [shareButton setImage:[UIImage imageNamed:@"share_normal"] forState:UIControlStateNormal];
-    [shareButton setImage:[UIImage imageNamed:@"share_click"] forState:UIControlStateHighlighted];
-    [shareButton addTarget:self action:@selector(showOnlineDictionarys) forControlEvents:UIControlEventTouchUpInside];
-    [backgroundView addSubview:shareButton];
-    
     // count
-    _countLabel = [[UILabel alloc] initWithFrame:CGRectMake(50.f, yy, 90.f, 90.f)];
+    _countLabel = [[UILabel alloc] initWithFrame:CGRectMake(16.f, yy, 90.f, 90.f)];
     _countLabel.backgroundColor = [UIColor clearColor];
     _countLabel.font = [UIFont systemFontOfSize:16];
     _countLabel.textColor = [UIColor grayColor];
@@ -470,18 +448,6 @@
         _audioPlayer.delegate = self;
         [_audioPlayer play];
     }
-}
-
-- (void)showOnlineDictionarys
-{
-    [self pause];
-    
-    CKAlertView *alertView = [[CKAlertView alloc] initWithTitle:@"在线词典"
-                                                        message:nil
-                                                       delegate:self
-                                              cancelButtonTitle:nil
-                                              otherButtonTitles:@"有道在线词典", @"爱词霸在线词典", @"百度在线词典", @"海词在线词典", nil];
-    [alertView show];
 }
 
 @end

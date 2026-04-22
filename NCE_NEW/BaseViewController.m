@@ -8,7 +8,6 @@
 
 #import "BaseViewController.h"
 #import "Utility.h"
-#import <AVFoundation/AVFoundation.h>
 
 @interface BaseViewController ()
 {
@@ -59,9 +58,6 @@
                                                                              target:self
                                                                              action:@selector(goBack)];
 
-    NSError *sessionError = nil;
-    [[AVAudioSession sharedInstance] setCategory:AVAudioSessionCategoryPlayback error:&sessionError];
-    [[AVAudioSession sharedInstance] setActive:YES error:&sessionError];
 }
 
 - (void)didReceiveMemoryWarning {

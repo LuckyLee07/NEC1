@@ -44,7 +44,7 @@
     // set title
     NSDictionary *dic = [NSDictionary dictionaryWithObject:[UIColor whiteColor] forKey:NSForegroundColorAttributeName];
     self.navigationController.navigationBar.titleTextAttributes = dic;
-    self.navigationItem.title = @"新概念英语";
+    self.navigationItem.title = @"新概念第一册";
     
     [self addBooks];
 }

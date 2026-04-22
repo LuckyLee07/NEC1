@@ -7,11 +7,12 @@
 //
 
 #import "AppDelegate.h"
-#import<AVFoundation/AVFoundation.h>
+#import <sqlite3.h>
 
 @interface AppDelegate ()
 
 - (void)configureNavigationBarAppearance;
+- (void)pruneDatabaseAtPath:(NSString *)databasePath;
 
 @end
 
@@ -32,13 +33,6 @@
     [application setStatusBarStyle:UIStatusBarStyleLightContent];
 #pragma clang diagnostic pop
 
-    NSError *audioSessionError = nil;
-    [[AVAudioSession sharedInstance] setCategory:AVAudioSessionCategoryPlayback error:&audioSessionError];
-    [[AVAudioSession sharedInstance] setActive:YES error:&audioSessionError];
-    if (audioSessionError) {
-        NSLog(@"Audio session setup failed: %@", audioSessionError.localizedDescription);
-    }
-    
     return YES;
 }
 
@@ -138,18 +132,49 @@ configurationForConnectingSceneSession:(UISceneSession *)connectingSceneSession
 
 - (void)checkAndCreateDatabase
 {
-    BOOL success;
     NSFileManager *fileManager = [NSFileManager defaultManager];
     NSString *databasePath = [[NSHomeDirectory() stringByAppendingPathComponent:@"Documents"] stringByAppendingPathComponent:@"NCE.db"];
-    success = [fileManager fileExistsAtPath:databasePath];
-    if (success) {
-        NSLog(@"database doworking");
-        return;
-    } else{
-        NSLog(@"database notworking");
-        NSString *databasePathFromApp = [[[NSBundle mainBundle] resourcePath] stringByAppendingPathComponent:@"NCE.db"];
-        [fileManager copyItemAtPath:databasePathFromApp toPath:databasePath error:nil];
+    NSString *databasePathFromApp = [[[NSBundle mainBundle] resourcePath] stringByAppendingPathComponent:@"NCE.db"];
+
+    if (![fileManager fileExistsAtPath:databasePath]) {
+        NSError *copyError = nil;
+        [fileManager copyItemAtPath:databasePathFromApp toPath:databasePath error:&copyError];
+        if (copyError) {
+            NSLog(@"Database copy failed: %@", copyError.localizedDescription);
+            return;
+        }
     }
+
+    [self pruneDatabaseAtPath:databasePath];
+}
+
+- (void)pruneDatabaseAtPath:(NSString *)databasePath
+{
+    sqlite3 *database = NULL;
+    if (sqlite3_open([databasePath UTF8String], &database) != SQLITE_OK) {
+        if (database) {
+            NSLog(@"Open database failed: %s", sqlite3_errmsg(database));
+            sqlite3_close(database);
+        }
+        return;
+    }
+
+    const char *pruneSql =
+    "BEGIN TRANSACTION;"
+    "DELETE FROM play_list_books WHERE book_id != 1;"
+    "DELETE FROM play_list_lessons WHERE book_id != 1;"
+    "DELETE FROM play_list_sentences WHERE book_id != 1;"
+    "DELETE FROM words WHERE book_id != 1;"
+    "DELETE FROM apps_info;"
+    "COMMIT;";
+
+    char *errorMessage = NULL;
+    if (sqlite3_exec(database, pruneSql, NULL, NULL, &errorMessage) != SQLITE_OK) {
+        NSLog(@"Prune database failed: %s", errorMessage);
+        sqlite3_free(errorMessage);
+    }
+
+    sqlite3_close(database);
 }
 
 @end
