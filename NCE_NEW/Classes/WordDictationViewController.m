@@ -14,6 +14,29 @@
 
 static NSString* const kWordDictationViewControllerCellReuseId = @"kWordDictationViewControllerCellReuseId";
 
+static NSString *NCEWordSoundPath(NSString *word)
+{
+    if (word.length == 0) {
+        return nil;
+    }
+
+    NSArray<NSString *> *candidates = @[
+        word,
+        word.lowercaseString,
+        word.capitalizedString,
+    ];
+
+    for (NSString *candidate in candidates) {
+        NSString *soundName = [NSString stringWithFormat:@"data/words/wav/%@.wav", candidate];
+        NSString *soundPath = [[NSBundle mainBundle] pathForResource:soundName ofType:nil];
+        if (soundPath) {
+            return soundPath;
+        }
+    }
+
+    return nil;
+}
+
 @interface WordDictationViewController () <UITableViewDataSource, UITableViewDelegate, CKAlertViewDelegate, UITextFieldDelegate>
 {
     int _bookId;
@@ -314,8 +337,7 @@ static NSString* const kWordDictationViewControllerCellReuseId = @"kWordDictatio
         NSDictionary *item = [_items objectAtIndex:_currentIndex];
         _questionLabel.text = [item objectForKey:@"chinese"];
         
-        NSString *soundName = [NSString stringWithFormat:@"data/words/wav/%@.wav",[item objectForKey:@"english"]];
-        NSString *soundPath =  [[NSBundle mainBundle] pathForResource:soundName ofType:nil];
+        NSString *soundPath = NCEWordSoundPath([item objectForKey:@"english"]);
         
         if (soundPath) {
             _audioPlayer = [[AVAudioPlayer alloc] initWithContentsOfURL:[NSURL fileURLWithPath:soundPath] error:nil];
@@ -412,8 +434,7 @@ static NSString* const kWordDictationViewControllerCellReuseId = @"kWordDictatio
 
 - (void)repeat
 {
-    NSString *soundName = [NSString stringWithFormat:@"data/words/wav/%@.wav",[[_items objectAtIndex:_currentIndex] objectForKey:@"english"]];
-    NSString *soundPath =  [[NSBundle mainBundle] pathForResource:soundName ofType:nil];
+    NSString *soundPath = NCEWordSoundPath([[_items objectAtIndex:_currentIndex] objectForKey:@"english"]);
     
     if (soundPath) {
         _audioPlayer = [[AVAudioPlayer alloc] initWithContentsOfURL:[NSURL fileURLWithPath:soundPath] error:nil];

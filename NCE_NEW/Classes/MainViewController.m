@@ -36,9 +36,8 @@ static NSString* const kMainViewControllerCellReuseId = @"kMainViewControllerCel
 {
     self = [super init];
     if (self) {
-        NSArray *bookTitles = @[@"一", @"二", @"三", @"四"];
         _bookId = bookId;
-        self.titleString = [NSString stringWithFormat:@"第%@册", [bookTitles objectAtIndex:_bookId]];
+        self.titleString = @"第一册";
         
         [self initData];
     }

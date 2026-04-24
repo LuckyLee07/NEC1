@@ -11,6 +11,29 @@
 #import <AVFoundation/AVFoundation.h>
 #import "MBProgressHUD.h"
 
+static NSString *NCEWordAssetPath(NSString *folder, NSString *word, NSString *fileExtension)
+{
+    if (word.length == 0) {
+        return nil;
+    }
+
+    NSArray<NSString *> *candidates = @[
+        word,
+        word.lowercaseString,
+        word.capitalizedString,
+    ];
+
+    for (NSString *candidate in candidates) {
+        NSString *assetName = [NSString stringWithFormat:@"data/words/%@/%@.%@", folder, candidate, fileExtension];
+        NSString *assetPath = [[NSBundle mainBundle] pathForResource:assetName ofType:nil];
+        if (assetPath) {
+            return assetPath;
+        }
+    }
+
+    return nil;
+}
+
 @interface WordViewController () <AVAudioPlayerDelegate, UIAlertViewDelegate>
 {
     int _bookId;
@@ -177,8 +200,7 @@
     
     _chineseLabel.text = [item objectForKey:@"chinese"];
     
-    NSString *imageName = [NSString stringWithFormat:@"data/words/jpg/%@.jpg",[item objectForKey:@"english"]];
-    NSString *imagePath =  [[NSBundle mainBundle] pathForResource:imageName ofType:nil];
+    NSString *imagePath = NCEWordAssetPath(@"jpg", [item objectForKey:@"english"], @"jpg");
     if (imagePath) {
         CGFloat headerHeight = [self getConstHeight];
         UIImage *image = [UIImage imageWithContentsOfFile:imagePath];
@@ -196,8 +218,7 @@
     
     _countLabel.text = [NSString stringWithFormat:@"%d/%d", _currentIndex+1, (int)_items.count];
     
-    NSString *soundName = [NSString stringWithFormat:@"data/words/wav/%@.wav",[item objectForKey:@"english"]];
-    NSString *soundPath =  [[NSBundle mainBundle] pathForResource:soundName ofType:nil];
+    NSString *soundPath = NCEWordAssetPath(@"wav", [item objectForKey:@"english"], @"wav");
     
     if (soundPath) {
         _audioPlayer = [[AVAudioPlayer alloc] initWithContentsOfURL:[NSURL fileURLWithPath:soundPath] error:nil];
@@ -440,8 +461,7 @@
 {
     [NSObject cancelPreviousPerformRequestsWithTarget:self selector:@selector(next) object:nil];
     
-    NSString *soundName = [NSString stringWithFormat:@"data/words/wav/%@.wav",[[_items objectAtIndex:_currentIndex] objectForKey:@"english"]];
-    NSString *soundPath =  [[NSBundle mainBundle] pathForResource:soundName ofType:nil];
+    NSString *soundPath = NCEWordAssetPath(@"wav", [[_items objectAtIndex:_currentIndex] objectForKey:@"english"], @"wav");
     
     if (soundPath) {
         _audioPlayer = [[AVAudioPlayer alloc] initWithContentsOfURL:[NSURL fileURLWithPath:soundPath] error:nil];
