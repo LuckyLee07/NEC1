@@ -355,7 +355,8 @@ static NSString* const kTextViewControllerCellReuseId = @"kTextViewControllerCel
     CGFloat headerHight = [self getPlayViewHeight];
     
     CGFloat bgviewPosy = self.tableView.frame.origin.y + self.tableView.frame.size.height;
-    UIView *backgroundView = [[UIView alloc] initWithFrame:CGRectMake(0.f, bgviewPosy, self.view.frame.size.width, headerHight)];
+    CGFloat barWidth = CGRectGetWidth(self.tableView.frame);
+    UIView *backgroundView = [[UIView alloc] initWithFrame:CGRectMake(CGRectGetMinX(self.tableView.frame), bgviewPosy, barWidth, headerHight)];
     backgroundView.backgroundColor = [UIColor whiteColor];
     backgroundView.layer.shadowColor = [UIColor colorWithWhite:0.f alpha:0.08f].CGColor;
     backgroundView.layer.shadowOffset = CGSizeMake(0.f, -3.f);
@@ -364,17 +365,18 @@ static NSString* const kTextViewControllerCellReuseId = @"kTextViewControllerCel
     
     [self.view addSubview:backgroundView];
     
-    UIView *line = [[UIView alloc] initWithFrame:CGRectMake(0.f, 0.f, self.view.frame.size.width, 0.5f)];
+    UIView *line = [[UIView alloc] initWithFrame:CGRectMake(0.f, 0.f, barWidth, 0.5f)];
     line.backgroundColor = [Utility nceLineColor];
     [backgroundView addSubview:line];
     
+    CGFloat actionOffsetY = [Utility isPad] ? -12.f : 0.f;
     _sentenceProgressLabel = [Utility nceLabelWithFrame:CGRectMake(16.f, 8.f, 72.f, 22.f)
                                                    text:[NSString stringWithFormat:@"%d / %d 句", _currentIndex + 1, (int)_items.count]
                                                    font:[UIFont systemFontOfSize:13.f]
                                                   color:[Utility nceSecondaryTextColor]];
     [backgroundView addSubview:_sentenceProgressLabel];
     
-    UIButton *wordButton = [Utility nceTextButtonWithFrame:CGRectMake(16.f, 39.f, 88.f, 28.f)
+    UIButton *wordButton = [Utility nceTextButtonWithFrame:CGRectMake(16.f, 39.f + actionOffsetY, 88.f, 28.f)
                                                       text:@"本课单词"
                                            backgroundColor:[Utility nceBrandSoftColor]
                                                  textColor:[Utility nceBrandColor]];
@@ -384,7 +386,7 @@ static NSString* const kTextViewControllerCellReuseId = @"kTextViewControllerCel
     
     // prev
     UIButton *prevButton = [UIButton buttonWithType:UIButtonTypeCustom];
-    prevButton.frame = CGRectMake(self.view.frame.size.width - 144.f, 36.f, 30.f, 30.f);
+    prevButton.frame = CGRectMake(barWidth - 144.f, 36.f + actionOffsetY, 30.f, 30.f);
     [prevButton setImage:[UIImage imageNamed:@"prev_normal"] forState:UIControlStateNormal];
     [prevButton setImage:[UIImage imageNamed:@"prev_click"] forState:UIControlStateHighlighted];
     [prevButton addTarget:self action:@selector(prev) forControlEvents:UIControlEventTouchUpInside];
@@ -392,7 +394,7 @@ static NSString* const kTextViewControllerCellReuseId = @"kTextViewControllerCel
     
     // pause
     _pauseButton = [UIButton buttonWithType:UIButtonTypeCustom];
-    _pauseButton.frame = CGRectMake(self.view.frame.size.width - 97.f, 31.f, 40.f, 40.f);
+    _pauseButton.frame = CGRectMake(barWidth - 97.f, 31.f + actionOffsetY, 40.f, 40.f);
     [_pauseButton setImage:[UIImage imageNamed:@"pause_normal"] forState:UIControlStateNormal];
     [_pauseButton setImage:[UIImage imageNamed:@"pause_click"] forState:UIControlStateHighlighted];
     [_pauseButton addTarget:self action:@selector(pause) forControlEvents:UIControlEventTouchUpInside];
@@ -400,7 +402,7 @@ static NSString* const kTextViewControllerCellReuseId = @"kTextViewControllerCel
     
     // continue
     _continueButton = [UIButton buttonWithType:UIButtonTypeCustom];
-    _continueButton.frame = CGRectMake(self.view.frame.size.width - 97.f, 31.f, 40.f, 40.f);
+    _continueButton.frame = CGRectMake(barWidth - 97.f, 31.f + actionOffsetY, 40.f, 40.f);
     [_continueButton setImage:[UIImage imageNamed:@"play_normal"] forState:UIControlStateNormal];
     [_continueButton setImage:[UIImage imageNamed:@"play_click"] forState:UIControlStateHighlighted];
     [_continueButton addTarget:self action:@selector(continue) forControlEvents:UIControlEventTouchUpInside];
@@ -409,7 +411,7 @@ static NSString* const kTextViewControllerCellReuseId = @"kTextViewControllerCel
     
     // next
     UIButton *nextButton = [UIButton buttonWithType:UIButtonTypeCustom];
-    nextButton.frame = CGRectMake(self.view.frame.size.width - 42.f, 36.f, 30.f, 30.f);
+    nextButton.frame = CGRectMake(barWidth - 42.f, 36.f + actionOffsetY, 30.f, 30.f);
     [nextButton setImage:[UIImage imageNamed:@"next_normal"] forState:UIControlStateNormal];
     [nextButton setImage:[UIImage imageNamed:@"next_click"] forState:UIControlStateHighlighted];
     [nextButton addTarget:self action:@selector(next) forControlEvents:UIControlEventTouchUpInside];
@@ -428,7 +430,7 @@ static NSString* const kTextViewControllerCellReuseId = @"kTextViewControllerCel
     UIImage *newbgImage = [self OriginImage:bgImage scaleToSize:size];
     
     CGFloat sliderX = 96.f;
-    _contentSlider = [[UISlider alloc] initWithFrame:CGRectMake(sliderX, 15.f, self.view.frame.size.width - sliderX - 16.f, headerHight/9)];
+    _contentSlider = [[UISlider alloc] initWithFrame:CGRectMake(sliderX, 15.f, barWidth - sliderX - 16.f, headerHight/9)];
     _contentSlider.maximumValue = (float)_items.count-1;
     _contentSlider.minimumValue = 0.f;
     _contentSlider.value = 0.f;
@@ -441,7 +443,7 @@ static NSString* const kTextViewControllerCellReuseId = @"kTextViewControllerCel
     
     // init playing circle setting
     _circleButton = [UIButton buttonWithType:UIButtonTypeCustom];
-    _circleButton.frame = CGRectMake(116.f, 37.f, 30.f, 30.f);
+    _circleButton.frame = CGRectMake(116.f, 37.f + actionOffsetY, 30.f, 30.f);
     [_circleButton setImage:[UIImage imageNamed:@"playing_circle_btn"] forState:UIControlStateNormal];
     [_circleButton setImage:[UIImage imageNamed:@"playing_single_btn"] forState:UIControlStateSelected];
     [_circleButton addTarget:self action:@selector(circleOrSingle:) forControlEvents:UIControlEventTouchUpInside];

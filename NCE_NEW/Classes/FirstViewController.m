@@ -131,10 +131,19 @@ static NSInteger const kNCEDashboardViewTag = 9101;
     NSInteger totalWords = [[statsDictionary objectForKey:@"totalWords"] integerValue];
     NSInteger wrongWords = [[statsDictionary objectForKey:@"wrongWords"] integerValue];
     
+    CGRect layoutFrame = self.view.bounds;
+    if (@available(iOS 11.0, *)) {
+        layoutFrame = self.view.safeAreaLayoutGuide.layoutFrame;
+    }
+    CGFloat viewWidth = [Utility isPad] ? CGRectGetWidth(layoutFrame) : CGRectGetWidth(self.view.bounds);
     CGFloat navigationBottom = CGRectGetMaxY(self.navigationController.navigationBar.frame);
-    CGFloat contentTop = navigationBottom + ([Utility isPad] ? 40.f : 34.f);
-    CGFloat margin = [Utility isPad] ? 80.f : 18.f;
-    CGFloat width = CGRectGetWidth(self.view.bounds) - margin * 2.f;
+    CGFloat safeTop = 0.f;
+    if (@available(iOS 11.0, *)) {
+        safeTop = self.view.safeAreaInsets.top;
+    }
+    CGFloat contentTop = [Utility isPad] ? MIN(safeTop + 118.f, 128.f) : navigationBottom + 34.f;
+    CGFloat margin = ([Utility isPad] ? CGRectGetMinX(layoutFrame) : 0.f) + [Utility nceReadableContentXForViewWidth:viewWidth];
+    CGFloat width = [Utility nceReadableContentWidthForViewWidth:viewWidth];
     
     UIScrollView *scrollView = [[UIScrollView alloc] initWithFrame:self.view.bounds];
     scrollView.tag = kNCEDashboardViewTag;
@@ -161,7 +170,7 @@ static NSInteger const kNCEDashboardViewTag = 9101;
     badgeLabel.layer.masksToBounds = YES;
     [scrollView addSubview:badgeLabel];
     
-    UIImageView *bookView = [[UIImageView alloc] initWithFrame:CGRectMake(CGRectGetWidth(self.view.bounds) - margin - 64.f, contentTop - 2.f, 58.f, 82.f)];
+    UIImageView *bookView = [[UIImageView alloc] initWithFrame:CGRectMake(margin + width - 64.f, contentTop - 2.f, 58.f, 82.f)];
     bookView.image = [UIImage imageNamed:@"book1.jpg"];
     bookView.contentMode = UIViewContentModeScaleAspectFill;
     bookView.layer.cornerRadius = 8.f;

@@ -70,6 +70,22 @@ static NSString * const kNCELastLessonNameKey = @"NCELastLessonName";
     return [UIColor colorWithRed:226/255.f green:235/255.f blue:232/255.f alpha:1.f];
 }
 
++ (CGFloat)nceReadableContentWidthForViewWidth:(CGFloat)viewWidth
+{
+    CGFloat horizontalInset = [self isPad] ? 48.f : 18.f;
+    CGFloat contentWidth = MAX(0.f, viewWidth - horizontalInset * 2.f);
+    if ([self isPad] && viewWidth >= 700.f) {
+        contentWidth = MIN(contentWidth, 840.f);
+    }
+    return contentWidth;
+}
+
++ (CGFloat)nceReadableContentXForViewWidth:(CGFloat)viewWidth
+{
+    CGFloat contentWidth = [self nceReadableContentWidthForViewWidth:viewWidth];
+    return floorf((viewWidth - contentWidth) / 2.f);
+}
+
 + (UIView *)nceCardViewWithFrame:(CGRect)frame
 {
     UIView *view = [[UIView alloc] initWithFrame:frame];

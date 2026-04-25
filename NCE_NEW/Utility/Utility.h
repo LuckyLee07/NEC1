@@ -21,6 +21,8 @@
 + (UIColor *)nceTextColor;
 + (UIColor *)nceSecondaryTextColor;
 + (UIColor *)nceLineColor;
++ (CGFloat)nceReadableContentWidthForViewWidth:(CGFloat)viewWidth;
++ (CGFloat)nceReadableContentXForViewWidth:(CGFloat)viewWidth;
 + (UIView *)nceCardViewWithFrame:(CGRect)frame;
 + (UILabel *)nceLabelWithFrame:(CGRect)frame
                            text:(NSString *)text

@@ -75,9 +75,6 @@
 
 - (CGFloat)getHeaderPosY
 {
-    if ([Utility isPad]) {
-        return 0.0f;
-    }
     return [self getHeaderHeight];
 }
 
@@ -95,7 +92,7 @@
 {
     //return 0.0f;
     if ([Utility isPad]) {
-        return _headerHeight;
+        return 24.0f;
     }
     return 68.0f;
 }
@@ -107,30 +104,48 @@
 
 - (CGFloat)getPlayViewHeight
 {
+    if ([Utility isPad]) {
+        return 96.0f;
+    }
     return  75.0f;;
 }
 
 - (CGRect)getTableViewFrame
 {
-    CGFloat width = self.view.bounds.size.width;
-    CGFloat height = self.view.bounds.size.height;
+    CGRect layoutFrame = self.view.bounds;
+    if (@available(iOS 11.0, *)) {
+        layoutFrame = self.view.safeAreaLayoutGuide.layoutFrame;
+    }
+    CGFloat viewWidth = [Utility isPad] ? CGRectGetWidth(layoutFrame) : self.view.bounds.size.width;
+    CGFloat width = viewWidth;
+    CGFloat originX = 0.f;
+    if ([Utility isPad]) {
+        width = [Utility nceReadableContentWidthForViewWidth:viewWidth];
+        originX = CGRectGetMinX(layoutFrame) + [Utility nceReadableContentXForViewWidth:viewWidth];
+    }
+    CGFloat bottomLimit = self.view.bounds.size.height;
+    if ([Utility isPad]) {
+        bottomLimit = CGRectGetMaxY(layoutFrame);
+    }
     
-    CGFloat headerHeight = _headerHeight;
     CGFloat bannerHeight = _bannerHeight;
     
     CGFloat headerPosy = [self getHeaderPosY];
+    CGFloat playViewHeight = 0.f;
     
     if (_viewType == ViewType_Searchs) {
         headerPosy = headerPosy + 40.0f; //单词search
-        height = height - 40.0f;
     } else if (_viewType == ViewType_Lessons) {
-        height = height - [self getPlayViewHeight];
+        playViewHeight = [self getPlayViewHeight];
     }
     
-    // 统一分上中下三段处理
-    height = height - headerHeight - bannerHeight;
+    CGFloat height = bottomLimit - headerPosy - bannerHeight - playViewHeight;
+    if (_viewType == ViewType_Searchs) {
+        height = height - 40.0f;
+    }
+    height = MAX(height, 0.f);
     
-    return CGRectMake(0, headerPosy, width, height);
+    return CGRectMake(originX, headerPosy, width, height);
 }
 
 - (CGFloat)getSafeAreaHeight

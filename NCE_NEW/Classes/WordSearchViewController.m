@@ -10,6 +10,7 @@
 #import "sqlite3.h"
 #import "MBProgressHUD.h"
 #import "WordViewController.h"
+#import "Utility.h"
 
 static NSString* const kWordSearchViewControllerCellReuseId = @"kWordSearchViewControllerCellReuseId";
 
@@ -284,7 +285,14 @@ static NSString* const kWordSearchViewControllerCellReuseId = @"kWordSearchViewC
 
 - (void)addSearchBar
 {
-    CGRect barframe = CGRectMake(0.f, [self getHeaderPosY], self.view.frame.size.width, 40.f);
+    CGRect layoutFrame = self.view.bounds;
+    if (@available(iOS 11.0, *)) {
+        layoutFrame = self.view.safeAreaLayoutGuide.layoutFrame;
+    }
+    CGFloat viewWidth = [Utility isPad] ? CGRectGetWidth(layoutFrame) : CGRectGetWidth(self.view.bounds);
+    CGFloat barWidth = [Utility isPad] ? [Utility nceReadableContentWidthForViewWidth:viewWidth] : viewWidth;
+    CGFloat barX = [Utility isPad] ? CGRectGetMinX(layoutFrame) + [Utility nceReadableContentXForViewWidth:viewWidth] : 0.f;
+    CGRect barframe = CGRectMake(barX, [self getHeaderPosY], barWidth, 40.f);
     _searchBar = [[UISearchBar alloc] initWithFrame:barframe];
     _searchBar.placeholder = @"搜索单词";
     _searchBar.backgroundColor = [UIColor colorWithRed:156/255.f
@@ -336,4 +344,3 @@ static NSString* const kWordSearchViewControllerCellReuseId = @"kWordSearchViewC
 }
 
 @end
-

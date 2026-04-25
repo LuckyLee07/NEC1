@@ -56,9 +56,14 @@
         safeTop = self.view.safeAreaInsets.top;
     }
     
-    CGFloat margin = [Utility isPad] ? 80.f : 16.f;
-    CGFloat width = CGRectGetWidth(self.view.bounds) - margin * 2.f;
-    CGFloat contentTop = safeTop + 64.f;
+    CGRect layoutFrame = self.view.bounds;
+    if (@available(iOS 11.0, *)) {
+        layoutFrame = self.view.safeAreaLayoutGuide.layoutFrame;
+    }
+    CGFloat viewWidth = [Utility isPad] ? CGRectGetWidth(layoutFrame) : CGRectGetWidth(self.view.bounds);
+    CGFloat margin = ([Utility isPad] ? CGRectGetMinX(layoutFrame) : 0.f) + [Utility nceReadableContentXForViewWidth:viewWidth];
+    CGFloat width = [Utility nceReadableContentWidthForViewWidth:viewWidth];
+    CGFloat contentTop = safeTop + ([Utility isPad] ? 52.f : 64.f);
     
     UIScrollView *scrollView = [[UIScrollView alloc] initWithFrame:self.view.bounds];
     scrollView.backgroundColor = [UIColor clearColor];

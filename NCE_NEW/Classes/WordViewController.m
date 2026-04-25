@@ -115,10 +115,16 @@ static NSString *NCEWordAssetPath(NSString *folder, NSString *word, NSString *fi
     }
     
     CGFloat headerPosy = [self getHeaderPosY] + 8.f;
-    CGFloat contentWidth = self.view.frame.size.width - 28.f;
+    CGRect layoutFrame = self.view.bounds;
+    if (@available(iOS 11.0, *)) {
+        layoutFrame = self.view.safeAreaLayoutGuide.layoutFrame;
+    }
+    CGFloat viewWidth = [Utility isPad] ? CGRectGetWidth(layoutFrame) : CGRectGetWidth(self.view.bounds);
+    CGFloat contentWidth = [Utility nceReadableContentWidthForViewWidth:viewWidth];
+    CGFloat contentX = ([Utility isPad] ? CGRectGetMinX(layoutFrame) : 0.f) + [Utility nceReadableContentXForViewWidth:viewWidth];
     
     NSArray *modes = @[@"学习", @"回想", @"听写"];
-    UIView *modeView = [Utility nceCardViewWithFrame:CGRectMake(14.f, headerPosy, contentWidth, 44.f)];
+    UIView *modeView = [Utility nceCardViewWithFrame:CGRectMake(contentX, headerPosy, contentWidth, 44.f)];
     modeView.layer.shadowOpacity = 0.4f;
     [self.view addSubview:modeView];
     for (int ii = 0; ii < modes.count; ii++) {
@@ -134,7 +140,7 @@ static NSString *NCEWordAssetPath(NSString *folder, NSString *word, NSString *fi
         [modeView addSubview:modeLabel];
     }
     
-    UIView *wordCard = [Utility nceCardViewWithFrame:CGRectMake(14.f, CGRectGetMaxY(modeView.frame) + 12.f, contentWidth, 236.f)];
+    UIView *wordCard = [Utility nceCardViewWithFrame:CGRectMake(contentX, CGRectGetMaxY(modeView.frame) + 12.f, contentWidth, 236.f)];
     [self.view addSubview:wordCard];
     
     UILabel *contextLabel = [Utility nceLabelWithFrame:CGRectMake(18.f, 16.f, contentWidth - 36.f, 20.f)
@@ -293,12 +299,17 @@ static NSString *NCEWordAssetPath(NSString *folder, NSString *word, NSString *fi
 
 - (void)addBottomView:(CGFloat)startPosy
 {
-    CGFloat bgviewHeight = self.view.frame.size.height-startPosy-self.bannerHeight;
-    if ([self getHeaderPosY] <= 0) { // iPad适配
-        bgviewHeight = bgviewHeight - [self getDefaultBottomHeight];
+    CGRect layoutFrame = self.view.bounds;
+    if (@available(iOS 11.0, *)) {
+        layoutFrame = self.view.safeAreaLayoutGuide.layoutFrame;
     }
+    CGFloat viewWidth = [Utility isPad] ? CGRectGetWidth(layoutFrame) : CGRectGetWidth(self.view.bounds);
+    CGFloat contentWidth = [Utility nceReadableContentWidthForViewWidth:viewWidth];
+    CGFloat contentX = ([Utility isPad] ? CGRectGetMinX(layoutFrame) : 0.f) + [Utility nceReadableContentXForViewWidth:viewWidth];
+    CGFloat bgviewHeight = CGRectGetHeight(self.view.bounds) - startPosy - [self getDefaultBottomHeight];
+    bgviewHeight = MAX(bgviewHeight, 220.f);
 
-    UIView *backgroundView = [[UIView alloc] initWithFrame:CGRectMake(14.f, startPosy, self.view.frame.size.width - 28.f, bgviewHeight)];
+    UIView *backgroundView = [[UIView alloc] initWithFrame:CGRectMake(contentX, startPosy, contentWidth, bgviewHeight)];
     backgroundView.backgroundColor = [UIColor clearColor];
     [self.view addSubview:backgroundView];
     
