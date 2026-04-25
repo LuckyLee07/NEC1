@@ -10,6 +10,7 @@
 #import "sqlite3.h"
 #import <AVFoundation/AVFoundation.h>
 #import "MBProgressHUD.h"
+#import "Utility.h"
 
 static NSString *NCEWordAssetPath(NSString *folder, NSString *word, NSString *fileExtension)
 {
@@ -100,36 +101,72 @@ static NSString *NCEWordAssetPath(NSString *folder, NSString *word, NSString *fi
 - (void)viewDidLoad {
     [super viewDidLoad];
     // Do any additional setup after loading the view.
-    CGFloat headerPosy = [self getHeaderPosY];
-    CGFloat headerHeight = [self getConstHeight];
+    self.view.backgroundColor = [Utility nceBackgroundColor];
+    if (self.titleString.length == 0) {
+        self.navigationItem.title = @"单词训练";
+    }
     
-    _englishLabel = [[UILabel alloc] initWithFrame:CGRectMake(0, headerPosy, self.view.frame.size.width, headerHeight*1.2)];
-    _englishLabel.backgroundColor = [self.colorArray objectAtIndex:4];
-    _englishLabel.font = [UIFont systemFontOfSize:headerHeight*24/50];
-    _englishLabel.textColor = [UIColor whiteColor];
+    CGFloat headerPosy = [self getHeaderPosY] + 8.f;
+    CGFloat contentWidth = self.view.frame.size.width - 28.f;
+    
+    NSArray *modes = @[@"学习", @"回想", @"听写"];
+    UIView *modeView = [Utility nceCardViewWithFrame:CGRectMake(14.f, headerPosy, contentWidth, 44.f)];
+    modeView.layer.shadowOpacity = 0.4f;
+    [self.view addSubview:modeView];
+    for (int ii = 0; ii < modes.count; ii++) {
+        CGFloat itemW = contentWidth / 3.f;
+        UILabel *modeLabel = [Utility nceLabelWithFrame:CGRectMake(ii * itemW + 4.f, 5.f, itemW - 8.f, 34.f)
+                                                  text:modes[ii]
+                                                  font:[UIFont boldSystemFontOfSize:14.f]
+                                                 color:ii == MAX(0, _function - 1) ? [UIColor whiteColor] : [Utility nceSecondaryTextColor]];
+        modeLabel.textAlignment = NSTextAlignmentCenter;
+        modeLabel.backgroundColor = ii == MAX(0, _function - 1) ? [Utility nceBrandColor] : [UIColor clearColor];
+        modeLabel.layer.cornerRadius = 17.f;
+        modeLabel.layer.masksToBounds = YES;
+        [modeView addSubview:modeLabel];
+    }
+    
+    UIView *wordCard = [Utility nceCardViewWithFrame:CGRectMake(14.f, CGRectGetMaxY(modeView.frame) + 12.f, contentWidth, 236.f)];
+    [self.view addSubview:wordCard];
+    
+    UILabel *contextLabel = [Utility nceLabelWithFrame:CGRectMake(18.f, 16.f, contentWidth - 36.f, 20.f)
+                                                 text:@"来自第一册课程"
+                                                 font:[UIFont systemFontOfSize:13.f]
+                                                color:[Utility nceSecondaryTextColor]];
+    [wordCard addSubview:contextLabel];
+    
+    _englishLabel = [[UILabel alloc] initWithFrame:CGRectMake(18.f, 44.f, contentWidth - 36.f, 48.f)];
+    _englishLabel.backgroundColor = [UIColor clearColor];
+    _englishLabel.font = [UIFont boldSystemFontOfSize:34.f];
+    _englishLabel.textColor = [Utility nceTextColor];
     _englishLabel.textAlignment = NSTextAlignmentCenter;
-    [self.view addSubview:_englishLabel];
+    _englishLabel.adjustsFontSizeToFitWidth = YES;
+    _englishLabel.minimumScaleFactor = 0.62f;
+    [wordCard addSubview:_englishLabel];
     
+    _chineseView = [[UIView alloc] initWithFrame:CGRectMake(18.f, 106.f, contentWidth - 36.f, 92.f)];
+    _chineseView.backgroundColor = [UIColor colorWithRed:255/255.f green:248/255.f blue:243/255.f alpha:1.f];
+    _chineseView.layer.cornerRadius = 10.f;
+    [wordCard addSubview:_chineseView];
     
-    _chineseView = [[UIView alloc] initWithFrame:CGRectMake(0, headerPosy+headerHeight*1.2, self.view.frame.size.width, headerHeight*2)];
-    _chineseView.backgroundColor = [self.colorArray objectAtIndex:5];
-    [self.view addSubview:_chineseView];
-    
-    _chineseLabel = [[UILabel alloc] initWithFrame:CGRectMake(headerHeight*2/5, 0, self.view.frame.size.width-headerHeight*2/5, headerHeight*2)];
+    _chineseLabel = [[UILabel alloc] initWithFrame:CGRectMake(16.f, 8.f, CGRectGetWidth(_chineseView.frame) - 32.f, 76.f)];
     _chineseLabel.backgroundColor = [UIColor clearColor];
-    _chineseLabel.font = [UIFont systemFontOfSize:headerHeight*16/50];
-    _chineseLabel.textColor = [UIColor darkGrayColor];
-    _chineseLabel.textAlignment = NSTextAlignmentLeft;
+    _chineseLabel.font = [UIFont systemFontOfSize:17.f];
+    _chineseLabel.textColor = [Utility nceTextColor];
+    _chineseLabel.textAlignment = NSTextAlignmentCenter;
     _chineseLabel.numberOfLines = 0;
     _chineseLabel.lineBreakMode = NSLineBreakByWordWrapping;
     [_chineseView addSubview:_chineseLabel];
     
     _wordImageView = [[UIImageView alloc] initWithFrame:CGRectMake(0, 0, 0, 0)];
     [_chineseView addSubview:_wordImageView];
+    UILabel *progressLabel = [Utility nceLabelWithFrame:CGRectMake(18.f, 207.f, contentWidth - 36.f, 18.f)
+                                                  text:@"第一册单词进度"
+                                                  font:[UIFont systemFontOfSize:12.f]
+                                                 color:[Utility nceSecondaryTextColor]];
+    [wordCard addSubview:progressLabel];
     
-    CGFloat labelHeight = _englishLabel.frame.size.height;
-    CGFloat cviewHeight = _chineseView.frame.size.height;
-    CGFloat startPosy = headerPosy + labelHeight + cviewHeight;
+    CGFloat startPosy = CGRectGetMaxY(wordCard.frame) + 10.f;
     [self addBottomView:startPosy];
     
     [self showWordInformation];
@@ -202,13 +239,18 @@ static NSString *NCEWordAssetPath(NSString *folder, NSString *word, NSString *fi
     
     NSString *imagePath = NCEWordAssetPath(@"jpg", [item objectForKey:@"english"], @"jpg");
     if (imagePath) {
-        CGFloat headerHeight = [self getConstHeight];
         UIImage *image = [UIImage imageWithContentsOfFile:imagePath];
-        int width = image.size.width*headerHeight*2/image.size.height;
-        _wordImageView.frame = CGRectMake(self.view.frame.size.width-width, 0, width, headerHeight*2);
+        CGFloat imageHeight = CGRectGetHeight(_chineseView.bounds) - 24.f;
+        CGFloat imageWidth = image.size.height > 0 ? image.size.width * imageHeight / image.size.height : 0.f;
+        imageWidth = MIN(imageWidth, CGRectGetWidth(_chineseView.bounds) * 0.32f);
+        _wordImageView.frame = CGRectMake(CGRectGetWidth(_chineseView.bounds) - imageWidth - 10.f, 12.f, imageWidth, imageHeight);
         _wordImageView.image = image;
+        _wordImageView.layer.cornerRadius = 8.f;
+        _wordImageView.layer.masksToBounds = YES;
+        _chineseLabel.frame = CGRectMake(16.f, 10.f, CGRectGetWidth(_chineseView.bounds) - imageWidth - 42.f, CGRectGetHeight(_chineseView.bounds) - 20.f);
     } else {
         _wordImageView.image = nil;
+        _chineseLabel.frame = CGRectMake(16.f, 10.f, CGRectGetWidth(_chineseView.bounds) - 32.f, CGRectGetHeight(_chineseView.bounds) - 20.f);
     }
     
     if (_function == 2) {
@@ -245,111 +287,121 @@ static NSString *NCEWordAssetPath(NSString *folder, NSString *word, NSString *fi
         bgviewHeight = bgviewHeight - [self getDefaultBottomHeight];
     }
 
-    UIView *backgroundView = [[UIView alloc] initWithFrame:CGRectMake(0.f, startPosy, self.view.frame.size.width, bgviewHeight)];
-    backgroundView.backgroundColor = [UIColor colorWithWhite:1.f alpha:0.9f];
+    UIView *backgroundView = [[UIView alloc] initWithFrame:CGRectMake(14.f, startPosy, self.view.frame.size.width - 28.f, bgviewHeight)];
+    backgroundView.backgroundColor = [UIColor clearColor];
     [self.view addSubview:backgroundView];
     
-    CGFloat buttonY = bgviewHeight - 90.0f - 40.0f;
+    UIView *statusCard = [Utility nceCardViewWithFrame:CGRectMake(0.f, 0.f, CGRectGetWidth(backgroundView.frame), 88.f)];
+    [backgroundView addSubview:statusCard];
     
-    int detalWidth = 40;
-    if (_function == 2 || _function == 3) detalWidth = 0;
+    UILabel *hintLabel = [Utility nceLabelWithFrame:CGRectMake(16.f, 12.f, CGRectGetWidth(statusCard.frame) - 32.f, 20.f)
+                                              text:@"熟悉度标记"
+                                              font:[UIFont boldSystemFontOfSize:15.f]
+                                             color:[Utility nceTextColor]];
+    [statusCard addSubview:hintLabel];
     
-    UIButton *strangeButton = [UIButton buttonWithType:UIButtonTypeCustom];
-    strangeButton.frame = CGRectMake(10.f, buttonY, 50.f, 40.f);
-    [strangeButton setImage:[UIImage imageNamed:@"strange_normal"] forState:UIControlStateNormal];
-    [strangeButton setImage:[UIImage imageNamed:@"strange_click"] forState:UIControlStateHighlighted];
+    CGFloat statusButtonWidth = (CGRectGetWidth(statusCard.frame) - 48.f) / 3.f;
+    UIButton *strangeButton = [Utility nceTextButtonWithFrame:CGRectMake(16.f, 42.f, statusButtonWidth, 34.f)
+                                                         text:@"陌生"
+                                              backgroundColor:[UIColor colorWithRed:255/255.f green:238/255.f blue:233/255.f alpha:1.f]
+                                                    textColor:[Utility nceAccentColor]];
     [strangeButton addTarget:self action:@selector(signWord:) forControlEvents:UIControlEventTouchUpInside];
     strangeButton.tag = 101;
-    [backgroundView addSubview:strangeButton];
+    [statusCard addSubview:strangeButton];
     
-    UIButton *vagueButton = [UIButton buttonWithType:UIButtonTypeCustom];
-    vagueButton.frame = CGRectMake(60.f, buttonY, 50.f, 40.f);
-    [vagueButton setImage:[UIImage imageNamed:@"vague_normal"] forState:UIControlStateNormal];
-    [vagueButton setImage:[UIImage imageNamed:@"vague_click"] forState:UIControlStateHighlighted];
+    UIButton *vagueButton = [Utility nceTextButtonWithFrame:CGRectMake(24.f + statusButtonWidth, 42.f, statusButtonWidth, 34.f)
+                                                       text:@"模糊"
+                                            backgroundColor:[UIColor colorWithRed:255/255.f green:247/255.f blue:225/255.f alpha:1.f]
+                                                  textColor:[UIColor colorWithRed:213/255.f green:148/255.f blue:45/255.f alpha:1.f]];
     [vagueButton addTarget:self action:@selector(signWord:) forControlEvents:UIControlEventTouchUpInside];
     vagueButton.tag = 103;
-    [backgroundView addSubview:vagueButton];
+    [statusCard addSubview:vagueButton];
     
-    UIButton *familiarButton = [UIButton buttonWithType:UIButtonTypeCustom];
-    familiarButton.frame = CGRectMake(110.f, buttonY, 50.f, 40.f);
-    [familiarButton setImage:[UIImage imageNamed:@"familiar_normal"] forState:UIControlStateNormal];
-    [familiarButton setImage:[UIImage imageNamed:@"familiar_click"] forState:UIControlStateHighlighted];
+    UIButton *familiarButton = [Utility nceTextButtonWithFrame:CGRectMake(32.f + statusButtonWidth * 2.f, 42.f, statusButtonWidth, 34.f)
+                                                          text:@"认识"
+                                               backgroundColor:[Utility nceBrandSoftColor]
+                                                     textColor:[Utility nceBrandColor]];
     [familiarButton addTarget:self action:@selector(signWord:) forControlEvents:UIControlEventTouchUpInside];
     familiarButton.tag = 102;
-    [backgroundView addSubview:familiarButton];
+    [statusCard addSubview:familiarButton];
     
+    CGFloat actionY = CGRectGetMaxY(statusCard.frame) + 12.f;
+    CGFloat actionWidth = CGRectGetWidth(backgroundView.frame);
+    CGFloat volumeX = 0.f;
+    CGFloat volumeWidth = actionWidth;
     if (_function == 3) {
-        UIButton *originButton = [UIButton buttonWithType:UIButtonTypeCustom];
-        originButton.frame = CGRectMake(self.view.frame.size.width-90.f, buttonY, 40.f, 40.f);
-        [originButton setImage:[UIImage imageNamed:@"origin_normal"] forState:UIControlStateNormal];
-        [originButton setImage:[UIImage imageNamed:@"origin_click"] forState:UIControlStateHighlighted];
+        volumeX = actionWidth / 2.f + 5.f;
+        volumeWidth = actionWidth / 2.f - 5.f;
+        UIButton *originButton = [Utility nceTextButtonWithFrame:CGRectMake(0.f, actionY, actionWidth / 2.f - 5.f, 36.f)
+                                                            text:@"显示英文"
+                                                 backgroundColor:[UIColor whiteColor]
+                                                       textColor:[Utility nceTextColor]];
         [originButton addTarget:self action:@selector(showEnglish) forControlEvents:UIControlEventTouchUpInside];
         [backgroundView addSubview:originButton];
     }
     
     if (_function == 2) {
-        UIButton *translateButton = [UIButton buttonWithType:UIButtonTypeCustom];
-        translateButton.frame = CGRectMake(self.view.frame.size.width-90.f, buttonY, 40.f, 40.f);
-        [translateButton setImage:[UIImage imageNamed:@"translate_normal"] forState:UIControlStateNormal];
-        [translateButton setImage:[UIImage imageNamed:@"translate_click"] forState:UIControlStateHighlighted];
+        volumeX = actionWidth / 2.f + 5.f;
+        volumeWidth = actionWidth / 2.f - 5.f;
+        UIButton *translateButton = [Utility nceTextButtonWithFrame:CGRectMake(0.f, actionY, actionWidth / 2.f - 5.f, 36.f)
+                                                               text:@"显示释义"
+                                                    backgroundColor:[UIColor whiteColor]
+                                                          textColor:[Utility nceTextColor]];
         [translateButton addTarget:self action:@selector(showChinese) forControlEvents:UIControlEventTouchUpInside];
         [backgroundView addSubview:translateButton];
     }
     
-    UIButton *volumeButton = [UIButton buttonWithType:UIButtonTypeCustom];
-    volumeButton.frame = CGRectMake(self.view.frame.size.width-50.f, buttonY, 40.f, 40.f);
-    [volumeButton setImage:[UIImage imageNamed:@"volume_normal"] forState:UIControlStateNormal];
-    [volumeButton setImage:[UIImage imageNamed:@"volume_click"] forState:UIControlStateHighlighted];
+    UIButton *volumeButton = [Utility nceTextButtonWithFrame:CGRectMake(volumeX, actionY, volumeWidth, 36.f)
+                                                        text:@"播放发音"
+                                             backgroundColor:[UIColor whiteColor]
+                                                   textColor:[Utility nceBrandColor]];
     [volumeButton addTarget:self action:@selector(repeat) forControlEvents:UIControlEventTouchUpInside];
     [backgroundView addSubview:volumeButton];
     
-    
-    CGFloat yy = bgviewHeight - 90.0f;
-    
-    UIImageView *line = [[UIImageView alloc] initWithFrame:CGRectMake(0.f, yy+0.5f, self.view.frame.size.width, 1.5f)];
-    line.image = [UIImage imageNamed:@"line"];
-    [backgroundView addSubview:line];
+    CGFloat yy = actionY + 52.f;
+    UIView *controlCard = [Utility nceCardViewWithFrame:CGRectMake(0.f, yy, CGRectGetWidth(backgroundView.frame), 68.f)];
+    [backgroundView addSubview:controlCard];
     
     // count
-    _countLabel = [[UILabel alloc] initWithFrame:CGRectMake(16.f, yy, 90.f, 90.f)];
+    _countLabel = [[UILabel alloc] initWithFrame:CGRectMake(16.f, 0.f, 90.f, 68.f)];
     _countLabel.backgroundColor = [UIColor clearColor];
     _countLabel.font = [UIFont systemFontOfSize:16];
-    _countLabel.textColor = [UIColor grayColor];
+    _countLabel.textColor = [Utility nceSecondaryTextColor];
     _countLabel.textAlignment = NSTextAlignmentLeft;
-    [backgroundView addSubview:_countLabel];
+    [controlCard addSubview:_countLabel];
     
     // prev
     UIButton *prevButton = [UIButton buttonWithType:UIButtonTypeCustom];
-    prevButton.frame = CGRectMake(self.view.frame.size.width-200, yy+25, 40, 40);
+    prevButton.frame = CGRectMake(CGRectGetWidth(controlCard.frame)-192, 14, 40, 40);
     [prevButton setImage:[UIImage imageNamed:@"prev_normal"] forState:UIControlStateNormal];
     [prevButton setImage:[UIImage imageNamed:@"prev_click"] forState:UIControlStateHighlighted];
     [prevButton addTarget:self action:@selector(prev) forControlEvents:UIControlEventTouchUpInside];
-    [backgroundView addSubview:prevButton];
+    [controlCard addSubview:prevButton];
     
     // pause
     _pauseButton = [UIButton buttonWithType:UIButtonTypeCustom];
-    _pauseButton.frame = CGRectMake(self.view.frame.size.width-140, yy+20, 50, 50);
+    _pauseButton.frame = CGRectMake(CGRectGetWidth(controlCard.frame)-130, 9, 50, 50);
     [_pauseButton setImage:[UIImage imageNamed:@"pause_normal"] forState:UIControlStateNormal];
     [_pauseButton setImage:[UIImage imageNamed:@"pause_click"] forState:UIControlStateHighlighted];
     [_pauseButton addTarget:self action:@selector(pause) forControlEvents:UIControlEventTouchUpInside];
-    [backgroundView addSubview:_pauseButton];
+    [controlCard addSubview:_pauseButton];
     
     // continue
     _continueButton = [UIButton buttonWithType:UIButtonTypeCustom];
-    _continueButton.frame = CGRectMake(self.view.frame.size.width-140, yy+20, 50, 50);
+    _continueButton.frame = CGRectMake(CGRectGetWidth(controlCard.frame)-130, 9, 50, 50);
     [_continueButton setImage:[UIImage imageNamed:@"play_normal"] forState:UIControlStateNormal];
     [_continueButton setImage:[UIImage imageNamed:@"play_click"] forState:UIControlStateHighlighted];
     [_continueButton addTarget:self action:@selector(continue) forControlEvents:UIControlEventTouchUpInside];
-    [backgroundView addSubview:_continueButton];
+    [controlCard addSubview:_continueButton];
     _continueButton.hidden = YES;
     
     // next
     UIButton *nextButton = [UIButton buttonWithType:UIButtonTypeCustom];
-    nextButton.frame = CGRectMake(self.view.frame.size.width-70, yy+25, 40, 40);
+    nextButton.frame = CGRectMake(CGRectGetWidth(controlCard.frame)-58, 14, 40, 40);
     [nextButton setImage:[UIImage imageNamed:@"next_normal"] forState:UIControlStateNormal];
     [nextButton setImage:[UIImage imageNamed:@"next_click"] forState:UIControlStateHighlighted];
     [nextButton addTarget:self action:@selector(next) forControlEvents:UIControlEventTouchUpInside];
-    [backgroundView addSubview:nextButton];
+    [controlCard addSubview:nextButton];
 }
 
 - (void)prev

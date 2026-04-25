@@ -12,22 +12,32 @@
 #import "WordViewController.h"
 #import "WordTestViewController.h"
 #import "WordDictationViewController.h"
+#import "Utility.h"
 
 static NSString* const kLessonViewControllerCellReuseId = @"kLessonViewControllerCellReuseId";
 
 @interface LessonViewController () <UITableViewDataSource, UITableViewDelegate>
 {
+    NSMutableArray *_allItems;
     NSMutableArray *_items;
     int _bookId;
     int _function;
     int _showTimes;
     NSInteger _currIndex;
+    NSSet *_completedLessonIds;
+    NSDictionary *_lastLesson;
+    NSString *_filterStatus;
 }
 
 @property (nonatomic, strong) UITableView *tableView;
 
 - (void)initData;
 - (void)addTableView;
+- (UIView *)tableHeaderViewWithWidth:(CGFloat)width;
+- (NSString *)statusForLessonId:(NSString *)lessonId;
+- (void)applyLessonFilter;
+- (void)filterLessons:(UIButton *)button;
+- (void)updateEmptyState;
 
 @end
 
@@ -42,6 +52,9 @@ static NSString* const kLessonViewControllerCellReuseId = @"kLessonViewControlle
         _function = function;
         _showTimes = 1;
         _currIndex = -1;
+        _completedLessonIds = [Utility nceCompletedLessonIds];
+        _lastLesson = [Utility nceLastLesson];
+        _filterStatus = @"全部";
         
         [self initData];
     }
@@ -82,40 +95,68 @@ static NSString* const kLessonViewControllerCellReuseId = @"kLessonViewControlle
         [view removeFromSuperview];
     }
     
-    CGFloat height = tableView.frame.size.height/10;
-    
     NSString *nameString = [[_items objectAtIndex:indexPath.row] objectForKey:@"name"];
     NSArray *lessonArray = [nameString componentsSeparatedByString:@"－"];
+    NSString *lessonNo = lessonArray.count > 0 ? [lessonArray objectAtIndex:0] : @"Lesson";
+    NSString *englishTitle = lessonArray.count > 1 ? [lessonArray objectAtIndex:1] : nameString;
+    NSString *chineseTitle = lessonArray.count > 2 ? [lessonArray objectAtIndex:2] : @"";
+    UIColor *statusBgColor = [UIColor colorWithRed:239/255.f green:242/255.f blue:242/255.f alpha:1.f];
+    UIColor *statusTextColor = [Utility nceSecondaryTextColor];
+    NSString *lessonId = [[_items objectAtIndex:indexPath.row] objectForKey:@"id"];
+    NSString *statusText = [self statusForLessonId:lessonId];
+    if ([statusText isEqualToString:@"已完成"]) {
+        statusBgColor = [Utility nceBrandSoftColor];
+        statusTextColor = [Utility nceBrandColor];
+    } else if ([statusText isEqualToString:@"学习中"]) {
+        statusBgColor = [UIColor colorWithRed:255/255.f green:235/255.f blue:226/255.f alpha:1.f];
+        statusTextColor = [Utility nceAccentColor];
+    }
     
-    // lesson name
-    UILabel *idLabel = [[UILabel alloc] initWithFrame:CGRectMake(0, 0, height, height)];
-    idLabel.backgroundColor = [self.colorArray objectAtIndex:indexPath.row%9];
-    idLabel.font = [UIFont systemFontOfSize:12*height/50];
-    idLabel.textColor = [UIColor whiteColor];
-    idLabel.text = [lessonArray objectAtIndex:0];
+    CGFloat cardX = 14.f;
+    CGFloat cardY = 6.f;
+    CGFloat cardWidth = tableView.frame.size.width - 28.f;
+    UIView *cardView = [Utility nceCardViewWithFrame:CGRectMake(cardX, cardY, cardWidth, 82.f)];
+    cardView.layer.shadowOpacity = 0.5f;
+    [cell.contentView addSubview:cardView];
+    
+    UILabel *idLabel = [Utility nceLabelWithFrame:CGRectMake(14.f, 17.f, 62.f, 24.f)
+                                            text:lessonNo
+                                            font:[UIFont boldSystemFontOfSize:13.f]
+                                           color:[Utility nceBrandColor]];
     idLabel.textAlignment = NSTextAlignmentCenter;
-    [cell.contentView addSubview:idLabel];
+    idLabel.backgroundColor = [Utility nceBrandSoftColor];
+    idLabel.layer.cornerRadius = 12.f;
+    idLabel.layer.masksToBounds = YES;
+    [cardView addSubview:idLabel];
     
-    // english title
-    UILabel *titleLabel = [[UILabel alloc] initWithFrame:CGRectMake(height*4/3, height/12, tableView.frame.size.width-height, height/2)];
-    titleLabel.backgroundColor = [UIColor clearColor];
-    titleLabel.font = [UIFont systemFontOfSize:14*height/50];
-    titleLabel.textColor = [UIColor blackColor];
-    titleLabel.text = [lessonArray objectAtIndex:1];
+    UILabel *titleLabel = [Utility nceLabelWithFrame:CGRectMake(90.f, 14.f, cardWidth - 178.f, 25.f)
+                                               text:englishTitle
+                                               font:[UIFont boldSystemFontOfSize:16.f]
+                                              color:[Utility nceTextColor]];
     titleLabel.textAlignment = NSTextAlignmentLeft;
-    [cell.contentView addSubview:titleLabel];
+    titleLabel.adjustsFontSizeToFitWidth = YES;
+    titleLabel.minimumScaleFactor = 0.76f;
+    [cardView addSubview:titleLabel];
     
-    // chinese title
-    UILabel *subTitleLabel = [[UILabel alloc] initWithFrame:CGRectMake(height*4/3, height*7/12, tableView.frame.size.width-height, height*5/12)];
-    subTitleLabel.backgroundColor = [UIColor clearColor];
-    subTitleLabel.font = [UIFont systemFontOfSize:12*height/50];
-    subTitleLabel.textColor = [UIColor darkGrayColor];
-    subTitleLabel.text = [lessonArray objectAtIndex:2];
+    UILabel *subTitleLabel = [Utility nceLabelWithFrame:CGRectMake(90.f, 43.f, cardWidth - 178.f, 22.f)
+                                                  text:chineseTitle
+                                                  font:[UIFont systemFontOfSize:13.f]
+                                                 color:[Utility nceSecondaryTextColor]];
     subTitleLabel.textAlignment = NSTextAlignmentLeft;
-    [cell.contentView addSubview:subTitleLabel];
+    [cardView addSubview:subTitleLabel];
+    
+    UILabel *statusLabel = [Utility nceLabelWithFrame:CGRectMake(cardWidth - 78.f, 28.f, 58.f, 26.f)
+                                                text:statusText
+                                                font:[UIFont systemFontOfSize:12.f]
+                                               color:statusTextColor];
+    statusLabel.textAlignment = NSTextAlignmentCenter;
+    statusLabel.backgroundColor = statusBgColor;
+    statusLabel.layer.cornerRadius = 13.f;
+    statusLabel.layer.masksToBounds = YES;
+    [cardView addSubview:statusLabel];
     
     // show when the cell is selected
-    UIView *maskView = [[UIView alloc] initWithFrame:CGRectMake(height, 0, tableView.frame.size.width-height, height)];
+    UIView *maskView = [[UIView alloc] initWithFrame:CGRectMake(cardX, cardY, cardWidth, 82.f)];
     maskView.backgroundColor = [UIColor clearColor];
     maskView.tag = 1000+indexPath.row;
     [cell.contentView addSubview:maskView];
@@ -128,7 +169,7 @@ static NSString* const kLessonViewControllerCellReuseId = @"kLessonViewControlle
 
 - (CGFloat)tableView:(UITableView *)tableView heightForRowAtIndexPath:(NSIndexPath *)indexPath
 {
-    return tableView.frame.size.height/10;
+    return 94.f;
 }
 
 - (void)tableView:(UITableView *)tableView didSelectRowAtIndexPath:(NSIndexPath *)indexPath
@@ -169,21 +210,19 @@ static NSString* const kLessonViewControllerCellReuseId = @"kLessonViewControlle
 
 - (void)tableView:(UITableView *)tableView willDisplayCell:(UITableViewCell *)cell forRowAtIndexPath:(NSIndexPath *)indexPath
 {
-    CGFloat height = tableView.frame.size.height/10;
-    
     if ([tableView respondsToSelector:@selector(setSeparatorInset:)])
     {
-        [tableView setSeparatorInset:UIEdgeInsetsMake(0, height, 0, 0)];
+        [tableView setSeparatorInset:UIEdgeInsetsZero];
     }
     
     else if ([tableView respondsToSelector:@selector(setLayoutMargins:)])
     {
-        [tableView setLayoutMargins:UIEdgeInsetsMake(0, height, 0, 0)];
+        [tableView setLayoutMargins:UIEdgeInsetsZero];
     }
     
     else if ([cell respondsToSelector:@selector(setLayoutMargins:)])
     {
-        [cell setLayoutMargins:UIEdgeInsetsMake(0, height, 0, 0)];
+        [cell setLayoutMargins:UIEdgeInsetsZero];
     }
 }
 
@@ -192,6 +231,7 @@ static NSString* const kLessonViewControllerCellReuseId = @"kLessonViewControlle
 
 - (void)initData
 {
+    _allItems = [[NSMutableArray alloc] init];
     _items = [[NSMutableArray alloc] init];
     
     sqlite3 *database;
@@ -216,15 +256,75 @@ static NSString* const kLessonViewControllerCellReuseId = @"kLessonViewControlle
         NSString *idString = [[NSString alloc] initWithCString:(char *)sqlite3_column_text(statement, 1) encoding:NSUTF8StringEncoding];
         [item setObject:idString forKey:@"id"];
         
-        [_items addObject:item];
+        [_allItems addObject:item];
     }
     
     sqlite3_finalize(statement);
     sqlite3_close(database);
+    
+    [self applyLessonFilter];
+}
+
+- (NSString *)statusForLessonId:(NSString *)lessonId
+{
+    if ([_completedLessonIds containsObject:lessonId]) {
+        return @"已完成";
+    }
+    
+    if ([[_lastLesson objectForKey:@"id"] isEqualToString:lessonId]) {
+        return @"学习中";
+    }
+    
+    return @"未学";
+}
+
+- (void)applyLessonFilter
+{
+    [_items removeAllObjects];
+    for (NSDictionary *lesson in _allItems) {
+        NSString *status = [self statusForLessonId:[lesson objectForKey:@"id"]];
+        if ([_filterStatus isEqualToString:@"全部"] || [_filterStatus isEqualToString:status]) {
+            [_items addObject:lesson];
+        }
+    }
+}
+
+- (void)filterLessons:(UIButton *)button
+{
+    NSArray *filters = @[@"全部", @"未学", @"学习中", @"已完成"];
+    if (button.tag < 0 || button.tag >= filters.count) {
+        return;
+    }
+    
+    _filterStatus = [filters objectAtIndex:button.tag];
+    [self applyLessonFilter];
+    self.tableView.tableHeaderView = [self tableHeaderViewWithWidth:CGRectGetWidth(self.tableView.frame)];
+    [self.tableView reloadData];
+    [self updateEmptyState];
+}
+
+- (void)updateEmptyState
+{
+    if (_items.count > 0) {
+        self.tableView.tableFooterView = [[UIView alloc] initWithFrame:CGRectZero];
+        return;
+    }
+    
+    UIView *emptyView = [[UIView alloc] initWithFrame:CGRectMake(0.f, 0.f, CGRectGetWidth(self.tableView.frame), 180.f)];
+    UILabel *emptyLabel = [Utility nceLabelWithFrame:CGRectMake(24.f, 58.f, CGRectGetWidth(emptyView.frame) - 48.f, 44.f)
+                                               text:[NSString stringWithFormat:@"当前没有%@课文", _filterStatus]
+                                               font:[UIFont systemFontOfSize:15.f]
+                                              color:[Utility nceSecondaryTextColor]];
+    emptyLabel.textAlignment = NSTextAlignmentCenter;
+    [emptyView addSubview:emptyLabel];
+    self.tableView.tableFooterView = emptyView;
 }
 
 - (void)addTableView
 {
+    _completedLessonIds = [Utility nceCompletedLessonIds];
+    _lastLesson = [Utility nceLastLesson];
+    
     UIView *view = [[UIView alloc] initWithFrame:CGRectZero];
     [self.view addSubview:view];
     
@@ -232,13 +332,71 @@ static NSString* const kLessonViewControllerCellReuseId = @"kLessonViewControlle
     self.tableView = [[UITableView alloc] initWithFrame:tableViewFrame style:UITableViewStylePlain];
     
     self.tableView.backgroundColor = [UIColor colorWithWhite:1.f alpha:0.9f];
+    self.tableView.backgroundColor = [UIColor clearColor];
     self.tableView.dataSource = self;
     self.tableView.delegate = self;
+    self.tableView.separatorStyle = UITableViewCellSeparatorStyleNone;
+    self.tableView.tableHeaderView = [self tableHeaderViewWithWidth:CGRectGetWidth(tableViewFrame)];
     
     [self.tableView registerClass:[UITableViewCell class]
            forCellReuseIdentifier:kLessonViewControllerCellReuseId];
     
     [self.view addSubview:self.tableView];
+    [self updateEmptyState];
+}
+
+- (UIView *)tableHeaderViewWithWidth:(CGFloat)width
+{
+    NSDictionary *statsDictionary = [Utility nceStudyStats];
+    NSInteger completedLessons = [[statsDictionary objectForKey:@"completedLessons"] integerValue];
+    NSInteger totalLessons = [[statsDictionary objectForKey:@"totalLessons"] integerValue];
+    
+    UIView *headerView = [[UIView alloc] initWithFrame:CGRectMake(0.f, 0.f, width, 132.f)];
+    headerView.backgroundColor = [UIColor clearColor];
+    
+    UIView *summaryCard = [Utility nceCardViewWithFrame:CGRectMake(14.f, 12.f, width - 28.f, 72.f)];
+    [headerView addSubview:summaryCard];
+    
+    UILabel *titleLabel = [Utility nceLabelWithFrame:CGRectMake(16.f, 12.f, width - 60.f, 24.f)
+                                               text:@"第一册进度"
+                                               font:[UIFont boldSystemFontOfSize:17.f]
+                                              color:[Utility nceTextColor]];
+    [summaryCard addSubview:titleLabel];
+    
+    UILabel *progressLabel = [Utility nceLabelWithFrame:CGRectMake(16.f, 40.f, width - 60.f, 18.f)
+                                                  text:[NSString stringWithFormat:@"已完成 %ld / %ld 课", (long)completedLessons, (long)totalLessons]
+                                                  font:[UIFont systemFontOfSize:13.f]
+                                                 color:[Utility nceSecondaryTextColor]];
+    [summaryCard addSubview:progressLabel];
+    
+    UIView *progressBg = [[UIView alloc] initWithFrame:CGRectMake(width - 148.f, 34.f, 104.f, 8.f)];
+    progressBg.backgroundColor = [Utility nceBrandSoftColor];
+    progressBg.layer.cornerRadius = 4.f;
+    [summaryCard addSubview:progressBg];
+    
+    CGFloat progress = totalLessons > 0 ? (CGFloat)completedLessons / (CGFloat)totalLessons : 0.f;
+    UIView *progressValue = [[UIView alloc] initWithFrame:CGRectMake(0.f, 0.f, 104.f * progress, 8.f)];
+    progressValue.backgroundColor = [Utility nceBrandColor];
+    progressValue.layer.cornerRadius = 4.f;
+    [progressBg addSubview:progressValue];
+    
+    NSArray *chips = @[@"全部", @"未学", @"学习中", @"已完成"];
+    CGFloat chipX = 14.f;
+    for (int ii = 0; ii < chips.count; ii++) {
+        CGFloat chipWidth = ii == 0 ? 54.f : 68.f;
+        BOOL selected = [_filterStatus isEqualToString:[chips objectAtIndex:ii]];
+        UIButton *chipButton = [Utility nceTextButtonWithFrame:CGRectMake(chipX, 98.f, chipWidth, 28.f)
+                                                          text:[chips objectAtIndex:ii]
+                                               backgroundColor:selected ? [Utility nceBrandColor] : [UIColor whiteColor]
+                                                     textColor:selected ? [UIColor whiteColor] : [Utility nceSecondaryTextColor]];
+        chipButton.titleLabel.font = [UIFont systemFontOfSize:13.f];
+        chipButton.tag = ii;
+        [chipButton addTarget:self action:@selector(filterLessons:) forControlEvents:UIControlEventTouchUpInside];
+        [headerView addSubview:chipButton];
+        chipX += chipWidth + 8.f;
+    }
+    
+    return headerView;
 }
 
 @end

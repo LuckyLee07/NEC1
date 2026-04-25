@@ -10,6 +10,7 @@
 #import "sqlite3.h"
 #import "CKAlertView.h"
 #import "MBProgressHUD.h"
+#import "Utility.h"
 #import <AVFoundation/AVFoundation.h>
 
 static NSString* const kWordDictationViewControllerCellReuseId = @"kWordDictationViewControllerCellReuseId";
@@ -96,6 +97,7 @@ static NSString *NCEWordSoundPath(NSString *word)
 - (void)viewDidLoad {
     [super viewDidLoad];
     // Do any additional setup after loading the view.
+    self.view.backgroundColor = [Utility nceBackgroundColor];
     
     [self addTableView];
     
@@ -157,89 +159,93 @@ static NSString *NCEWordSoundPath(NSString *word)
         [view removeFromSuperview];
     }
     
+    CGFloat width = tableView.frame.size.width;
     CGFloat height = tableView.frame.size.height/8;
     
     if (indexPath.row == 1) {
-        height *= 1.8;
+        CGFloat cardHeight = [self tableView:tableView heightForRowAtIndexPath:indexPath] - 12.f;
+        UIView *cardView = [Utility nceCardViewWithFrame:CGRectMake(14.f, 6.f, width - 28.f, cardHeight)];
+        [cell.contentView addSubview:cardView];
         
-        _questionLabel = [[UILabel alloc] initWithFrame:CGRectMake(height/4, 0, self.view.frame.size.width-height/2, height*5/6)];
-        _questionLabel.backgroundColor = [self.colorArray objectAtIndex:6];
-        _questionLabel.layer.cornerRadius = height/10;
+        UILabel *hintLabel = [Utility nceLabelWithFrame:CGRectMake(18.f, 16.f, width - 64.f, 20.f)
+                                                  text:@"听发音，写出英文单词"
+                                                  font:[UIFont systemFontOfSize:13.f]
+                                                 color:[Utility nceSecondaryTextColor]];
+        [cardView addSubview:hintLabel];
+        
+        _questionLabel = [[UILabel alloc] initWithFrame:CGRectMake(18.f, 46.f, width - 64.f, cardHeight - 62.f)];
+        _questionLabel.backgroundColor = [Utility nceBrandSoftColor];
+        _questionLabel.layer.cornerRadius = 10.f;
         _questionLabel.layer.masksToBounds = YES;
-        _questionLabel.font = [UIFont systemFontOfSize:8*height/50];
-        _questionLabel.textColor = [UIColor darkGrayColor];
+        _questionLabel.font = [UIFont boldSystemFontOfSize:18.f];
+        _questionLabel.textColor = [Utility nceTextColor];
         _questionLabel.textAlignment = NSTextAlignmentCenter;
-        [cell.contentView addSubview:_questionLabel];
+        _questionLabel.numberOfLines = 0;
+        [cardView addSubview:_questionLabel];
     } else if (indexPath.row > 1) {
-        UIView *background = [[UIView alloc] initWithFrame:CGRectMake(0, 0, self.view.frame.size.width, height)];
-        background.backgroundColor = [UIColor colorWithWhite:0.0f alpha:0.3];
-        //        [cell.contentView addSubview:background];
+        CGFloat cardHeight = [self tableView:tableView heightForRowAtIndexPath:indexPath] - 12.f;
+        UIView *cardView = [Utility nceCardViewWithFrame:CGRectMake(14.f, 6.f, width - 28.f, cardHeight)];
+        [cell.contentView addSubview:cardView];
         
-        UIColor *color = [UIColor colorWithRed:61/255.f
-                                         green:205/255.f
-                                          blue:122/255.f
-                                         alpha:1.f];
-        
-        _answerField = [[UITextField alloc] initWithFrame:CGRectMake(height/4, height/2-20, self.view.frame.size.width-80.f-height*9/4, 40)];
-        _answerField.backgroundColor = [UIColor clearColor];
-        _answerField.font = [UIFont systemFontOfSize:14.f];
+        _answerField = [[UITextField alloc] initWithFrame:CGRectMake(18.f, 18.f, width - 64.f, 44.f)];
+        _answerField.backgroundColor = [UIColor colorWithRed:248/255.f green:250/255.f blue:247/255.f alpha:1.f];
+        _answerField.font = [UIFont systemFontOfSize:16.f];
         _answerField.contentVerticalAlignment = UIControlContentVerticalAlignmentCenter;
         _answerField.delegate = self;
         _answerField.returnKeyType = UIReturnKeyDone;
         _answerField.clearButtonMode = UITextFieldViewModeWhileEditing;
-        _answerField.layer.cornerRadius = 6;
+        _answerField.layer.cornerRadius = 10.f;
         _answerField.layer.masksToBounds = YES;
         _answerField.layer.borderWidth = 1;
-        _answerField.layer.borderColor = [color CGColor];
-        _answerField.textColor = [UIColor blackColor];
-        _answerField.attributedPlaceholder = [[NSAttributedString alloc] initWithString:@"  请输入答案" attributes:@{NSForegroundColorAttributeName:[UIColor lightGrayColor],NSFontAttributeName:[UIFont systemFontOfSize:14.f]}];
-        [cell.contentView addSubview:_answerField];
+        _answerField.layer.borderColor = [Utility nceLineColor].CGColor;
+        _answerField.textColor = [Utility nceTextColor];
+        _answerField.leftView = [[UIView alloc] initWithFrame:CGRectMake(0.f, 0.f, 12.f, 44.f)];
+        _answerField.leftViewMode = UITextFieldViewModeAlways;
+        _answerField.attributedPlaceholder = [[NSAttributedString alloc] initWithString:@"请输入答案" attributes:@{NSForegroundColorAttributeName:[Utility nceSecondaryTextColor],NSFontAttributeName:[UIFont systemFontOfSize:15.f]}];
+        [cardView addSubview:_answerField];
         
         
-        UIButton *submitButton = [UIButton buttonWithType:UIButtonTypeCustom];
-        submitButton.frame = CGRectMake(self.view.frame.size.width-70.f-height*2, height/2-22, height, 44);
-        submitButton.layer.cornerRadius = 10;
-        submitButton.layer.masksToBounds = YES;
-        submitButton.layer.borderWidth = 1;
-        submitButton.layer.borderColor = [color CGColor];
-        [submitButton setTitle:@"Submit" forState:UIControlStateNormal];
-        [submitButton setTitleColor:color forState:UIControlStateNormal];
-        submitButton.titleLabel.font = [UIFont systemFontOfSize:12.f];
+        CGFloat buttonY = 78.f;
+        CGFloat buttonWidth = (width - 92.f) / 3.f;
+        UIButton *submitButton = [Utility nceTextButtonWithFrame:CGRectMake(18.f, buttonY, buttonWidth, 38.f)
+                                                            text:@"提交"
+                                                 backgroundColor:[Utility nceAccentColor]
+                                                       textColor:[UIColor whiteColor]];
         [submitButton addTarget:self action:@selector(submit) forControlEvents:UIControlEventTouchUpInside];
-        [cell.contentView addSubview:submitButton];
+        [cardView addSubview:submitButton];
         
-        UIButton *passButton = [UIButton buttonWithType:UIButtonTypeCustom];
-        passButton.frame = CGRectMake(self.view.frame.size.width-60.f-height, height/2-22, height, 44);
-        passButton.layer.cornerRadius = 10;
-        passButton.layer.masksToBounds = YES;
-        passButton.layer.borderWidth = 1;
-        passButton.layer.borderColor = [color CGColor];
-        [passButton setTitle:@"Pass" forState:UIControlStateNormal];
-        [passButton setTitleColor:color forState:UIControlStateNormal];
-        passButton.titleLabel.font = [UIFont systemFontOfSize:12.f];
+        UIButton *passButton = [Utility nceTextButtonWithFrame:CGRectMake(27.f + buttonWidth, buttonY, buttonWidth, 38.f)
+                                                          text:@"跳过"
+                                               backgroundColor:[Utility nceBrandSoftColor]
+                                                     textColor:[Utility nceBrandColor]];
         [passButton addTarget:self action:@selector(pass) forControlEvents:UIControlEventTouchUpInside];
-        [cell.contentView addSubview:passButton];
+        [cardView addSubview:passButton];
         
         _volumeButton = [UIButton buttonWithType:UIButtonTypeCustom];
-        _volumeButton.frame = CGRectMake(self.view.frame.size.width-50.f, height/2-20, 40.f, 40.f);
+        _volumeButton.frame = CGRectMake(36.f + buttonWidth * 2.f, buttonY - 1.f, buttonWidth, 40.f);
+        _volumeButton.backgroundColor = [UIColor whiteColor];
+        _volumeButton.layer.cornerRadius = 20.f;
         [_volumeButton setImage:[UIImage imageNamed:@"volume_click"] forState:UIControlStateNormal];
-        //        [_volumeButton setImage:[UIImage imageNamed:@"volume_click"] forState:UIControlStateHighlighted];
         [_volumeButton addTarget:self action:@selector(repeat) forControlEvents:UIControlEventTouchUpInside];
-        [cell.contentView addSubview:_volumeButton];
+        [cardView addSubview:_volumeButton];
     } else {
-        _scoreLabel = [[UILabel alloc] initWithFrame:CGRectMake(height/4, 0, height*2, height)];
-        _scoreLabel.backgroundColor = [UIColor clearColor];
-        _scoreLabel.font = [UIFont boldSystemFontOfSize:12*height/50];
-        _scoreLabel.textColor = [UIColor darkGrayColor];
-        _scoreLabel.textAlignment = NSTextAlignmentLeft;
-        [cell.contentView addSubview:_scoreLabel];
+        UIView *cardView = [Utility nceCardViewWithFrame:CGRectMake(14.f, 6.f, width - 28.f, [self tableView:tableView heightForRowAtIndexPath:indexPath] - 12.f)];
+        cardView.layer.shadowOpacity = 0.45f;
+        [cell.contentView addSubview:cardView];
         
-        _countLabel = [[UILabel alloc] initWithFrame:CGRectMake(self.view.frame.size.width-height*2.25, 0, height*2, height)];
+        _scoreLabel = [[UILabel alloc] initWithFrame:CGRectMake(18.f, 0, 120.f, CGRectGetHeight(cardView.frame))];
+        _scoreLabel.backgroundColor = [UIColor clearColor];
+        _scoreLabel.font = [UIFont boldSystemFontOfSize:16.f];
+        _scoreLabel.textColor = [Utility nceTextColor];
+        _scoreLabel.textAlignment = NSTextAlignmentLeft;
+        [cardView addSubview:_scoreLabel];
+        
+        _countLabel = [[UILabel alloc] initWithFrame:CGRectMake(width - 154.f, 0, 120.f, CGRectGetHeight(cardView.frame))];
         _countLabel.backgroundColor = [UIColor clearColor];
-        _countLabel.font = [UIFont boldSystemFontOfSize:12*height/50];
-        _countLabel.textColor = [UIColor darkGrayColor];
+        _countLabel.font = [UIFont boldSystemFontOfSize:16.f];
+        _countLabel.textColor = [Utility nceSecondaryTextColor];
         _countLabel.textAlignment = NSTextAlignmentRight;
-        [cell.contentView addSubview:_countLabel];
+        [cardView addSubview:_countLabel];
     }
     
     return cell;
@@ -250,11 +256,9 @@ static NSString *NCEWordSoundPath(NSString *word)
 
 - (CGFloat)tableView:(UITableView *)tableView heightForRowAtIndexPath:(NSIndexPath *)indexPath
 {
-    CGFloat height = tableView.frame.size.height/8;
-    
-    if (indexPath.row == 1) height *= 1.8;
-    
-    return height;
+    if (indexPath.row == 0) return 64.f;
+    if (indexPath.row == 1) return 150.f;
+    return 140.f;
 }
 
 - (void)tableView:(UITableView *)tableView didDeselectRowAtIndexPath:(NSIndexPath *)indexPath
@@ -358,7 +362,7 @@ static NSString *NCEWordSoundPath(NSString *word)
     CGRect tableViewFrame = [self getTableViewFrame];
     self.tableView = [[UITableView alloc] initWithFrame:tableViewFrame style:UITableViewStylePlain];
     
-    self.tableView.backgroundColor = [UIColor colorWithWhite:1.f alpha:0.9f];
+    self.tableView.backgroundColor = [UIColor clearColor];
     self.tableView.dataSource = self;
     self.tableView.delegate = self;
     self.tableView.separatorStyle = UITableViewCellSeparatorStyleNone;

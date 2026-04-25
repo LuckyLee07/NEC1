@@ -10,6 +10,7 @@
 #import "sqlite3.h"
 #import "MBProgressHUD.h"
 #import "CKAlertView.h"
+#import "Utility.h"
 
 static NSString* const kWordTestViewControllerCellReuseId = @"kWordTestViewControllerCellReuseId";
 
@@ -69,6 +70,7 @@ static NSString* const kWordTestViewControllerCellReuseId = @"kWordTestViewContr
 - (void)viewDidLoad {
     [super viewDidLoad];
     // Do any additional setup after loading the view.
+    self.view.backgroundColor = [Utility nceBackgroundColor];
     
     [self addTableView];
     
@@ -110,64 +112,81 @@ static NSString* const kWordTestViewControllerCellReuseId = @"kWordTestViewContr
         [view removeFromSuperview];
     }
     
-    CGFloat height = tableView.frame.size.height/8;
+    CGFloat width = tableView.frame.size.width;
     UILabel *idLabel;
     
     if (indexPath.row == 1) {
-        height *= 1.8;
+        UIView *cardView = [Utility nceCardViewWithFrame:CGRectMake(14.f, 6.f, width - 28.f, [self tableView:tableView heightForRowAtIndexPath:indexPath] - 12.f)];
+        [cell.contentView addSubview:cardView];
         
-        _questionLabel = [[UILabel alloc] initWithFrame:CGRectMake(height/4, 0, self.view.frame.size.width-height/2, height*5/6)];
-        _questionLabel.backgroundColor = [self.colorArray objectAtIndex:6];
-        _questionLabel.layer.cornerRadius = height/10;
+        UILabel *hintLabel = [Utility nceLabelWithFrame:CGRectMake(18.f, 14.f, width - 64.f, 20.f)
+                                                  text:_function == 5 ? @"选择正确中文释义" : @"选择正确英文单词"
+                                                  font:[UIFont systemFontOfSize:13.f]
+                                                 color:[Utility nceSecondaryTextColor]];
+        [cardView addSubview:hintLabel];
+        
+        _questionLabel = [[UILabel alloc] initWithFrame:CGRectMake(18.f, 44.f, width - 64.f, CGRectGetHeight(cardView.frame) - 58.f)];
+        _questionLabel.backgroundColor = [Utility nceBrandSoftColor];
+        _questionLabel.layer.cornerRadius = 10.f;
         _questionLabel.layer.masksToBounds = YES;
-        _questionLabel.font = [UIFont systemFontOfSize:12*height/50];
-        _questionLabel.textColor = [UIColor darkGrayColor];
+        _questionLabel.font = [UIFont boldSystemFontOfSize:22.f];
+        _questionLabel.textColor = [Utility nceTextColor];
         _questionLabel.textAlignment = NSTextAlignmentCenter;
-        [cell.contentView addSubview:_questionLabel];
+        _questionLabel.numberOfLines = 0;
+        [cardView addSubview:_questionLabel];
     } else if (indexPath.row > 1) {
-        height *= 1.2;
+        CGFloat cardHeight = [self tableView:tableView heightForRowAtIndexPath:indexPath] - 10.f;
+        UIView *cardView = [[UIView alloc] initWithFrame:CGRectMake(14.f, 5.f, width - 28.f, cardHeight)];
+        cardView.backgroundColor = [UIColor whiteColor];
+        cardView.layer.cornerRadius = 10.f;
+        cardView.layer.shadowColor = [UIColor colorWithWhite:0.f alpha:0.06f].CGColor;
+        cardView.layer.shadowOffset = CGSizeMake(0.f, 3.f);
+        cardView.layer.shadowOpacity = 1.f;
+        cardView.layer.shadowRadius = 8.f;
+        [cell.contentView addSubview:cardView];
         
         NSArray *idArray = @[@"A", @"B", @"C", @"D"];
-        idLabel = [[UILabel alloc] initWithFrame:CGRectMake(0.f, 0.f, height, height)];
-        idLabel.backgroundColor = [self.colorArray objectAtIndex:indexPath.row];
-        idLabel.font = [UIFont systemFontOfSize:14*height/50];
-        idLabel.textColor = [UIColor whiteColor];
+        idLabel = [[UILabel alloc] initWithFrame:CGRectMake(14.f, 12.f, 34.f, 34.f)];
+        idLabel.backgroundColor = [Utility nceBrandSoftColor];
+        idLabel.font = [UIFont boldSystemFontOfSize:15.f];
+        idLabel.textColor = [Utility nceBrandColor];
         idLabel.textAlignment = NSTextAlignmentCenter;
         idLabel.text = idArray[indexPath.row-2];
-        [cell.contentView addSubview:idLabel];
+        idLabel.layer.cornerRadius = 17.f;
+        idLabel.layer.masksToBounds = YES;
+        [cardView addSubview:idLabel];
         
-        UILabel *answerLabel = [[UILabel alloc] initWithFrame:CGRectMake(height, 0, self.view.frame.size.width-height, height)];
-        answerLabel.backgroundColor = [[self.colorArray objectAtIndex:indexPath.row] colorWithAlphaComponent:0.75f];
-        //        answerLabel.alpha = 0.5f;
-        answerLabel.font = [UIFont systemFontOfSize:14*height/50];
-        answerLabel.textColor = [UIColor whiteColor];
-        answerLabel.textAlignment = NSTextAlignmentCenter;
+        UILabel *answerLabel = [[UILabel alloc] initWithFrame:CGRectMake(60.f, 0, width - 102.f, cardHeight)];
+        answerLabel.backgroundColor = [UIColor clearColor];
+        answerLabel.font = [UIFont boldSystemFontOfSize:15.f];
+        answerLabel.textColor = [Utility nceTextColor];
+        answerLabel.textAlignment = NSTextAlignmentLeft;
+        answerLabel.numberOfLines = 2;
         answerLabel.tag = 100+indexPath.row;
-        [cell.contentView addSubview:answerLabel];
-        
-        // line
-        UILabel *line = [[UILabel alloc] initWithFrame:CGRectMake(0, height-0.5f, self.view.frame.size.width, 0.5f)];
-        line.backgroundColor = [UIColor colorWithWhite:1.0 alpha:0.75f];
-        [cell.contentView addSubview:line];
+        [cardView addSubview:answerLabel];
         
     } else {
-        _scoreLabel = [[UILabel alloc] initWithFrame:CGRectMake(height/4, 0, height*2, height)];
-        _scoreLabel.backgroundColor = [UIColor clearColor];
-        _scoreLabel.font = [UIFont boldSystemFontOfSize:12*height/50];
-        _scoreLabel.textColor = [UIColor darkGrayColor];
-        _scoreLabel.textAlignment = NSTextAlignmentLeft;
-        [cell.contentView addSubview:_scoreLabel];
+        UIView *cardView = [Utility nceCardViewWithFrame:CGRectMake(14.f, 6.f, width - 28.f, [self tableView:tableView heightForRowAtIndexPath:indexPath] - 12.f)];
+        cardView.layer.shadowOpacity = 0.45f;
+        [cell.contentView addSubview:cardView];
         
-        _countLabel = [[UILabel alloc] initWithFrame:CGRectMake(self.view.frame.size.width-height*2.25, 0, height*2, height)];
+        _scoreLabel = [[UILabel alloc] initWithFrame:CGRectMake(18.f, 0, 120.f, CGRectGetHeight(cardView.frame))];
+        _scoreLabel.backgroundColor = [UIColor clearColor];
+        _scoreLabel.font = [UIFont boldSystemFontOfSize:16.f];
+        _scoreLabel.textColor = [Utility nceTextColor];
+        _scoreLabel.textAlignment = NSTextAlignmentLeft;
+        [cardView addSubview:_scoreLabel];
+        
+        _countLabel = [[UILabel alloc] initWithFrame:CGRectMake(width - 154.f, 0, 120.f, CGRectGetHeight(cardView.frame))];
         _countLabel.backgroundColor = [UIColor clearColor];
-        _countLabel.font = [UIFont boldSystemFontOfSize:12*height/50];
-        _countLabel.textColor = [UIColor darkGrayColor];
+        _countLabel.font = [UIFont boldSystemFontOfSize:16.f];
+        _countLabel.textColor = [Utility nceSecondaryTextColor];
         _countLabel.textAlignment = NSTextAlignmentRight;
-        [cell.contentView addSubview:_countLabel];
+        [cardView addSubview:_countLabel];
     }
     
     // show when the cell is selected
-    UIView *maskView = [[UIView alloc] initWithFrame:CGRectMake(0, 0, tableView.frame.size.width, height)];
+    UIView *maskView = [[UIView alloc] initWithFrame:CGRectMake(14.f, 5.f, tableView.frame.size.width - 28.f, [self tableView:tableView heightForRowAtIndexPath:indexPath] - 10.f)];
     maskView.backgroundColor = [UIColor clearColor];
     maskView.tag = 1000+indexPath.row;
     [cell.contentView addSubview:maskView];
@@ -180,13 +199,9 @@ static NSString* const kWordTestViewControllerCellReuseId = @"kWordTestViewContr
 
 - (CGFloat)tableView:(UITableView *)tableView heightForRowAtIndexPath:(NSIndexPath *)indexPath
 {
-    CGFloat height = tableView.frame.size.height/8;
-    
-    if (indexPath.row == 1) height *= 1.8;
-    else if (indexPath.row > 1) height *= 1.2;
-    //    else height *= 0.8f;
-    
-    return height;
+    if (indexPath.row == 0) return 64.f;
+    if (indexPath.row == 1) return 136.f;
+    return 66.f;
 }
 
 - (void)tableView:(UITableView *)tableView didSelectRowAtIndexPath:(NSIndexPath *)indexPath
@@ -194,7 +209,7 @@ static NSString* const kWordTestViewControllerCellReuseId = @"kWordTestViewContr
     if (indexPath.row <= 1) return;
     if (_currentIndex >= _items.count) return;
     
-    if (indexPath.row > 1) [self.view viewWithTag:1000+indexPath.row].backgroundColor = [UIColor colorWithWhite:0.0f alpha:0.3f];
+    if (indexPath.row > 1) [self.view viewWithTag:1000+indexPath.row].backgroundColor = [[Utility nceBrandColor] colorWithAlphaComponent:0.12f];
     
     int answerTag = 100 + (int)indexPath.row;
     
@@ -357,8 +372,12 @@ static NSString* const kWordTestViewControllerCellReuseId = @"kWordTestViewContr
             int answerTag = 102 + ii;
             if (answerTag == _rightAnswerTag) continue;
             UILabel *answerLabel = (UILabel *)[self.view viewWithTag:answerTag];
-            answerLabel.text = [wrongAnswerArray objectAtIndex:yy];
-            yy++;
+            if (yy < wrongAnswerArray.count) {
+                answerLabel.text = [wrongAnswerArray objectAtIndex:yy];
+                yy++;
+            } else {
+                answerLabel.text = @"";
+            }
         }
     }
 }
@@ -371,7 +390,7 @@ static NSString* const kWordTestViewControllerCellReuseId = @"kWordTestViewContr
     CGRect tableViewFrame = [self getTableViewFrame];
     self.tableView = [[UITableView alloc] initWithFrame:tableViewFrame style:UITableViewStylePlain];
     
-    self.tableView.backgroundColor = [UIColor colorWithWhite:1.f alpha:0.9f];
+    self.tableView.backgroundColor = [UIColor clearColor];
     self.tableView.dataSource = self;
     self.tableView.delegate = self;
     self.tableView.separatorStyle = UITableViewCellSeparatorStyleNone;

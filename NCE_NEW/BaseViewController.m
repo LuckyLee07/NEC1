@@ -47,9 +47,8 @@
     [super viewDidLoad];
     // Do any additional setup after loading the view.
     self.navigationItem.title = self.titleString;
-    self.view.backgroundColor = [UIColor colorWithRed:98/255.f green:215/255.f blue:150/255.f alpha:1.f];
+    self.view.backgroundColor = [Utility nceBackgroundColor];
 
-    // add back button
     self.navigationItem.hidesBackButton = YES;
     self.navigationItem.leftItemsSupplementBackButton = NO;
     UIImage *backImage = [[UIImage imageNamed:@"btn_back"] imageWithRenderingMode:UIImageRenderingModeAlwaysOriginal];
@@ -87,7 +86,7 @@
     CGFloat headerHeight = 64.0f; // 20px + 44px
     CGFloat safeAreaHeight = [self getSafeAreaHeight];
     if (safeAreaHeight > 20.0f) {
-        headerHeight = 54.0f + safeAreaHeight;
+        headerHeight = 46.0f + safeAreaHeight;
     }
     return headerHeight;
 }

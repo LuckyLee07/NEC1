@@ -9,6 +9,8 @@
 #import "TextViewController.h"
 #import "sqlite3.h"
 #import <AVFoundation/AVFoundation.h>
+#import "Utility.h"
+#import "WordViewController.h"
 
 static NSString* const kTextViewControllerCellReuseId = @"kTextViewControllerCellReuseId";
 
@@ -31,6 +33,7 @@ static NSString* const kTextViewControllerCellReuseId = @"kTextViewControllerCel
     
     UISlider *_contentSlider;
     UIButton *_circleButton;
+    UILabel *_sentenceProgressLabel;
 }
 
 @property (nonatomic, strong) UITableView *tableView;
@@ -42,6 +45,8 @@ static NSString* const kTextViewControllerCellReuseId = @"kTextViewControllerCel
 - (void)addRightButton;
 - (void)showChinese:(UIButton *)button;
 - (NSDictionary *)getContentItem:(NSUInteger)item;
+- (UIView *)lessonHeaderViewWithWidth:(CGFloat)width;
+- (void)goLessonWords;
 
 @end
 
@@ -74,6 +79,7 @@ static NSString* const kTextViewControllerCellReuseId = @"kTextViewControllerCel
     // Do any additional setup after loading the view.
     
     //self.showTimes = 1;
+    [Utility nceSaveLastLessonId:[_lesson objectForKey:@"id"] lessonName:[_lesson objectForKey:@"name"]];
     
     [self addTableView];
     
@@ -111,54 +117,55 @@ static NSString* const kTextViewControllerCellReuseId = @"kTextViewControllerCel
     for (UIView *view in array) {
         [view removeFromSuperview];
     }
-    CGFloat headerHeight = [self getConstHeight];
-    CGFloat height = (tableView.frame.size.height-headerHeight)/8;
     NSDictionary *contentItem = [self getContentItem:indexPath.row];
+    CGFloat englishHeight = [[contentItem objectForKey:@"englishHeight"] floatValue];
+    CGFloat chineseHeight = _showChinese ? [[contentItem objectForKey:@"chineseHeight"] floatValue] : 0.f;
+    CGFloat cardHeight = englishHeight + chineseHeight + (_showChinese ? 44.f : 30.f);
+    BOOL isCurrent = _currentIndex == indexPath.row;
     
-    // englist title
-    UILabel *titleLabel = [[UILabel alloc] initWithFrame:CGRectMake(height/3, height/12, tableView.frame.size.width-height*2/3, [[contentItem objectForKey:@"englishHeight"] floatValue])];
+    UIView *cardView = [[UIView alloc] initWithFrame:CGRectMake(14.f, 5.f, tableView.frame.size.width - 28.f, cardHeight)];
+    cardView.backgroundColor = isCurrent ? [Utility nceBrandSoftColor] : [UIColor whiteColor];
+    cardView.layer.cornerRadius = 10.f;
+    [cell.contentView addSubview:cardView];
+    
+    UILabel *indexLabel = [Utility nceLabelWithFrame:CGRectMake(12.f, 12.f, 28.f, 20.f)
+                                               text:[NSString stringWithFormat:@"%02ld", (long)indexPath.row + 1]
+                                               font:[UIFont boldSystemFontOfSize:12.f]
+                                              color:isCurrent ? [Utility nceBrandColor] : [Utility nceSecondaryTextColor]];
+    [cardView addSubview:indexLabel];
+    
+    // english title
+    UILabel *titleLabel = [[UILabel alloc] initWithFrame:CGRectMake(46.f, 12.f, tableView.frame.size.width - 92.f, englishHeight)];
     titleLabel.backgroundColor = [UIColor clearColor];
-    titleLabel.font = [UIFont systemFontOfSize:14*height/50];
-    titleLabel.textColor = [UIColor blackColor];
+    titleLabel.font = [UIFont boldSystemFontOfSize:16.f];
+    titleLabel.textColor = isCurrent ? [Utility nceBrandColor] : [Utility nceTextColor];
     titleLabel.text = [contentItem objectForKey:@"english"];
     titleLabel.textAlignment = NSTextAlignmentLeft;
     titleLabel.numberOfLines = 0;
     titleLabel.lineBreakMode = NSLineBreakByWordWrapping;
     titleLabel.tag = 100+indexPath.row;
     [titleLabel sizeToFit];
-    [cell.contentView addSubview:titleLabel];
+    [cardView addSubview:titleLabel];
     
     // chinese title
-    UILabel *subTitleLabel = [[UILabel alloc] initWithFrame:CGRectMake(height/3, height/6+[[contentItem objectForKey:@"englishHeight"] floatValue], tableView.frame.size.width-height*2/3, [[contentItem objectForKey:@"chineseHeight"] floatValue])];
+    UILabel *subTitleLabel = [[UILabel alloc] initWithFrame:CGRectMake(46.f, CGRectGetMaxY(titleLabel.frame) + 9.f, tableView.frame.size.width - 92.f, [[contentItem objectForKey:@"chineseHeight"] floatValue])];
     subTitleLabel.backgroundColor = [UIColor clearColor];
-    subTitleLabel.font = [UIFont systemFontOfSize:12*height/50];
-    subTitleLabel.textColor = [UIColor darkGrayColor];
+    subTitleLabel.font = [UIFont systemFontOfSize:14.f];
+    subTitleLabel.textColor = isCurrent ? [Utility nceBrandColor] : [Utility nceSecondaryTextColor];
     subTitleLabel.text = [contentItem objectForKey:@"chinese"];
     subTitleLabel.textAlignment = NSTextAlignmentLeft;
     subTitleLabel.numberOfLines = 0;
     subTitleLabel.lineBreakMode = NSLineBreakByWordWrapping;
     subTitleLabel.tag = 10000+indexPath.row;
-    [titleLabel sizeToFit];
-    [cell.contentView addSubview:subTitleLabel];
+    [subTitleLabel sizeToFit];
+    [cardView addSubview:subTitleLabel];
     if (!_showChinese) subTitleLabel.hidden = YES;;
     
     // show when the cell is selected
-    UIView *maskView = [[UIView alloc] initWithFrame:CGRectMake(0, 0, tableView.frame.size.width, cell.frame.size.height)];
+    UIView *maskView = [[UIView alloc] initWithFrame:cardView.frame];
     maskView.backgroundColor = [UIColor clearColor];
     maskView.tag = 1000+indexPath.row;
     [cell.contentView addSubview:maskView];
-    
-    if (_currentIndex == indexPath.row) {
-        maskView.backgroundColor = [UIColor colorWithWhite:0.3f alpha:0.1f];
-        titleLabel.textColor = [UIColor colorWithRed:16/255.f
-                                               green:165/255.f
-                                                blue:79/255.f
-                                               alpha:1.f];
-        subTitleLabel.textColor = [UIColor colorWithRed:16/255.f
-                                                  green:165/255.f
-                                                   blue:79/255.f
-                                                  alpha:0.7f];
-    }
     
     return cell;
 }
@@ -170,39 +177,28 @@ static NSString* const kTextViewControllerCellReuseId = @"kTextViewControllerCel
 {
     NSDictionary *contentItem = [self getContentItem:indexPath.row];
     
-    CGFloat contentHeight = [[contentItem objectForKey:@"englishHeight"] floatValue]+[[contentItem objectForKey:@"chineseHeight"] floatValue];
+    CGFloat contentHeight = [[contentItem objectForKey:@"englishHeight"] floatValue];
+    if (_showChinese) {
+        contentHeight += [[contentItem objectForKey:@"chineseHeight"] floatValue];
+        contentHeight += 54.f;
+    } else {
+        contentHeight += 40.f;
+    }
     
     return contentHeight;
 }
 
 - (void)tableView:(UITableView *)tableView didSelectRowAtIndexPath:(NSIndexPath *)indexPath
 {
-    [self.view viewWithTag:1000+_currentIndex].backgroundColor = [UIColor clearColor];
-    [self.view viewWithTag:1000+indexPath.row].backgroundColor = [UIColor colorWithWhite:0.3f alpha:0.1f];
-    
-    UILabel *lastTitle = (UILabel *)[self.view viewWithTag:100+_currentIndex];
-    lastTitle.textColor = [UIColor darkGrayColor];
-    UILabel *currentTitle = (UILabel *)[self.view viewWithTag:100+indexPath.row];
-    currentTitle.textColor = [UIColor colorWithRed:16/255.f
-                                             green:165/255.f
-                                              blue:79/255.f
-                                             alpha:1.f];
-    
-    UILabel *lastSubTitle = (UILabel *)[self.view viewWithTag:10000+_currentIndex];
-    lastSubTitle.textColor = [UIColor grayColor];
-    UILabel *currentSubTitle = (UILabel *)[self.view viewWithTag:10000+indexPath.row];
-    currentSubTitle.textColor = [UIColor colorWithRed:16/255.f
-                                                green:165/255.f
-                                                 blue:79/255.f
-                                                alpha:0.7f];
-    
     _currentIndex = (int)indexPath.row;
     
     [self play];
+    [self.tableView reloadData];
     
     [tableView scrollToRowAtIndexPath:indexPath atScrollPosition:UITableViewScrollPositionBottom animated:YES];
     
     _contentSlider.value = _currentIndex;
+    _sentenceProgressLabel.text = [NSString stringWithFormat:@"%d / %d 句", _currentIndex + 1, (int)_items.count];
     
     _continueButton.hidden = YES;
     _pauseButton.hidden = NO;
@@ -214,15 +210,13 @@ static NSString* const kTextViewControllerCellReuseId = @"kTextViewControllerCel
 - (void)audioPlayerDidFinishPlaying:(AVAudioPlayer *)player successfully:(BOOL)flag
 {
     if (_currentIndex == _items.count-1 && _circleButton.selected) return;
-    
-    [self.view viewWithTag:1000+_currentIndex].backgroundColor = [UIColor clearColor];
-    UILabel *lastTitle = (UILabel *)[self.view viewWithTag:100+_currentIndex];
-    lastTitle.textColor = [UIColor darkGrayColor];
-    UILabel *lastSubTitle = (UILabel *)[self.view viewWithTag:10000+_currentIndex];
-    lastSubTitle.textColor = [UIColor grayColor];
-    
-    if (_currentIndex < _items.count-1) _currentIndex++;
-    else _currentIndex = 0;
+
+    if (_currentIndex < _items.count-1) {
+        _currentIndex++;
+    } else {
+        [Utility nceMarkLessonIdCompleted:[_lesson objectForKey:@"id"] lessonName:[_lesson objectForKey:@"name"]];
+        _currentIndex = 0;
+    }
     
     NSIndexPath *next = [NSIndexPath indexPathForRow:_currentIndex inSection:0];
     [self tableView:self.tableView didSelectRowAtIndexPath:next];
@@ -274,9 +268,11 @@ static NSString* const kTextViewControllerCellReuseId = @"kTextViewControllerCel
     self.tableView = [[UITableView alloc] initWithFrame:tableViewFrame style:UITableViewStylePlain];
     
     self.tableView.backgroundColor = [UIColor colorWithWhite:1.f alpha:0.9f];
+    self.tableView.backgroundColor = [UIColor clearColor];
     self.tableView.dataSource = self;
     self.tableView.delegate = self;
     self.tableView.separatorStyle = UITableViewCellSeparatorStyleNone;
+    self.tableView.tableHeaderView = [self lessonHeaderViewWithWidth:CGRectGetWidth(tableViewFrame)];
     
     [self.tableView registerClass:[UITableViewCell class]
            forCellReuseIdentifier:kTextViewControllerCellReuseId];
@@ -314,25 +310,25 @@ static NSString* const kTextViewControllerCellReuseId = @"kTextViewControllerCel
         NSString *filePath =  [[NSBundle mainBundle] pathForResource:fileName ofType:nil];
         NSString *contentString = [[NSString stringWithContentsOfFile:filePath encoding:NSUTF8StringEncoding error:nil] stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
         NSArray *contentArray = [contentString componentsSeparatedByString:@"－"];
-        
-        CGFloat height = self.tableView.frame.size.height/8;
+        NSString *english = contentArray.count > 0 ? [contentArray objectAtIndex:0] : @"";
+        NSString *chinese = contentArray.count > 1 ? [contentArray objectAtIndex:1] : @"";
         
         NSMutableParagraphStyle *paragraphStyle = [[NSMutableParagraphStyle alloc]init];
         paragraphStyle.lineBreakMode = NSLineBreakByWordWrapping;
-        NSDictionary *attributes = @{NSFontAttributeName:[UIFont systemFontOfSize:14*height/50], NSParagraphStyleAttributeName:paragraphStyle.copy};
-        NSDictionary *attributes1 = @{NSFontAttributeName:[UIFont systemFontOfSize:12*height/50], NSParagraphStyleAttributeName:paragraphStyle.copy};
+        NSDictionary *attributes = @{NSFontAttributeName:[UIFont boldSystemFontOfSize:16.f], NSParagraphStyleAttributeName:paragraphStyle.copy};
+        NSDictionary *attributes1 = @{NSFontAttributeName:[UIFont systemFontOfSize:14.f], NSParagraphStyleAttributeName:paragraphStyle.copy};
         
-        CGSize content0Size = [[contentArray objectAtIndex:0] boundingRectWithSize:CGSizeMake(self.tableView.frame.size.width-height*2/3, MAXFLOAT)
+        CGSize content0Size = [english boundingRectWithSize:CGSizeMake(self.tableView.frame.size.width - 92.f, MAXFLOAT)
                                                                            options:NSStringDrawingUsesLineFragmentOrigin
                                                                         attributes:attributes
                                                                            context:nil].size;
         
-        CGSize content1Size = [[contentArray objectAtIndex:1] boundingRectWithSize:CGSizeMake(self.tableView.frame.size.width-height*2/3, MAXFLOAT)
+        CGSize content1Size = [chinese boundingRectWithSize:CGSizeMake(self.tableView.frame.size.width - 92.f, MAXFLOAT)
                                                                            options:NSStringDrawingUsesLineFragmentOrigin
                                                                         attributes:attributes1
                                                                            context:nil].size;
         
-        contentItem = [[NSDictionary alloc] initWithObjectsAndKeys:[contentArray objectAtIndex:0], @"english" ,[contentArray objectAtIndex:1], @"chinese", @(content0Size.height), @"englishHeight", @(content1Size.height), @"chineseHeight", nil];
+        contentItem = [[NSDictionary alloc] initWithObjectsAndKeys:english, @"english" ,chinese, @"chinese", @(ceilf(content0Size.height)), @"englishHeight", @(ceilf(content1Size.height)), @"chineseHeight", nil];
         
         [_contentDictionary setObject:contentItem forKey:name];
     }
@@ -343,8 +339,6 @@ static NSString* const kTextViewControllerCellReuseId = @"kTextViewControllerCel
 {
     NSString *fileName = [NSString stringWithFormat:@"data/lessons/mp3/%@.mp3",[_items objectAtIndex:_currentIndex]];
     NSString *filePath =  [[NSBundle mainBundle] pathForResource:fileName ofType:nil];
-    
-    NSLog(@"Fxkk=====>>>%@", filePath);
     
     _audioPlayer = [[AVAudioPlayer alloc] initWithContentsOfURL:[NSURL fileURLWithPath:filePath] error:nil];
     _audioPlayer.delegate = self;
@@ -358,13 +352,31 @@ static NSString* const kTextViewControllerCellReuseId = @"kTextViewControllerCel
     
     CGFloat bgviewPosy = self.tableView.frame.origin.y + self.tableView.frame.size.height;
     UIView *backgroundView = [[UIView alloc] initWithFrame:CGRectMake(0.f, bgviewPosy, self.view.frame.size.width, headerHight)];
-    backgroundView.backgroundColor = [UIColor colorWithWhite:1.f alpha:0.9f];
+    backgroundView.backgroundColor = [UIColor whiteColor];
+    backgroundView.layer.shadowColor = [UIColor colorWithWhite:0.f alpha:0.08f].CGColor;
+    backgroundView.layer.shadowOffset = CGSizeMake(0.f, -3.f);
+    backgroundView.layer.shadowOpacity = 1.f;
+    backgroundView.layer.shadowRadius = 10.f;
     
     [self.view addSubview:backgroundView];
     
-    UIImageView *line = [[UIImageView alloc] initWithFrame:CGRectMake(0.f, 0.5f, self.view.frame.size.width, 0.5f)];
-    line.image = [UIImage imageNamed:@"line"];
+    UIView *line = [[UIView alloc] initWithFrame:CGRectMake(0.f, 0.f, self.view.frame.size.width, 0.5f)];
+    line.backgroundColor = [Utility nceLineColor];
     [backgroundView addSubview:line];
+    
+    _sentenceProgressLabel = [Utility nceLabelWithFrame:CGRectMake(16.f, 10.f, 84.f, 24.f)
+                                                   text:[NSString stringWithFormat:@"%d / %d 句", _currentIndex + 1, (int)_items.count]
+                                                   font:[UIFont systemFontOfSize:13.f]
+                                                  color:[Utility nceSecondaryTextColor]];
+    [backgroundView addSubview:_sentenceProgressLabel];
+    
+    UIButton *wordButton = [Utility nceTextButtonWithFrame:CGRectMake(16.f, 39.f, 88.f, 28.f)
+                                                      text:@"本课单词"
+                                           backgroundColor:[Utility nceBrandSoftColor]
+                                                 textColor:[Utility nceBrandColor]];
+    wordButton.titleLabel.font = [UIFont boldSystemFontOfSize:13.f];
+    [wordButton addTarget:self action:@selector(goLessonWords) forControlEvents:UIControlEventTouchUpInside];
+    [backgroundView addSubview:wordButton];
     
     // prev
     UIButton *prevButton = [UIButton buttonWithType:UIButtonTypeCustom];
@@ -411,7 +423,7 @@ static NSString* const kTextViewControllerCellReuseId = @"kTextViewControllerCel
     UIImage *bgImage = [UIImage imageNamed:@"progressBar_bg"];
     UIImage *newbgImage = [self OriginImage:bgImage scaleToSize:size];
     
-    _contentSlider = [[UISlider alloc] initWithFrame:CGRectMake(headerHight*10/9, headerHight*4/9, self.view.frame.size.width-headerHight*33/9, headerHight/9)];
+    _contentSlider = [[UISlider alloc] initWithFrame:CGRectMake(118.f, headerHight*4/9, self.view.frame.size.width - headerHight*33/9 - 24.f, headerHight/9)];
     _contentSlider.maximumValue = (float)_items.count-1;
     _contentSlider.minimumValue = 0.f;
     _contentSlider.value = 0.f;
@@ -424,7 +436,7 @@ static NSString* const kTextViewControllerCellReuseId = @"kTextViewControllerCel
     
     // init playing circle setting
     _circleButton = [UIButton buttonWithType:UIButtonTypeCustom];
-    _circleButton.frame = CGRectMake(headerHight/3, headerHight*5/18, headerHight*4/9, headerHight*4/9);
+    _circleButton.frame = CGRectMake(self.view.frame.size.width - headerHight*25/9, headerHight*5/18, headerHight*4/9, headerHight*4/9);
     [_circleButton setImage:[UIImage imageNamed:@"playing_circle_btn"] forState:UIControlStateNormal];
     [_circleButton setImage:[UIImage imageNamed:@"playing_single_btn"] forState:UIControlStateSelected];
     [_circleButton addTarget:self action:@selector(circleOrSingle:) forControlEvents:UIControlEventTouchUpInside];
@@ -487,6 +499,55 @@ static NSString* const kTextViewControllerCellReuseId = @"kTextViewControllerCel
 {
     UIButton *button = (UIButton *)sender;
     button.selected = !button.selected;
+}
+
+- (UIView *)lessonHeaderViewWithWidth:(CGFloat)width
+{
+    UIView *headerView = [[UIView alloc] initWithFrame:CGRectMake(0.f, 0.f, width, 116.f)];
+    headerView.backgroundColor = [UIColor clearColor];
+    
+    NSArray *lessonArray = [[_lesson objectForKey:@"name"] componentsSeparatedByString:@"－"];
+    NSString *lessonNo = lessonArray.count > 0 ? [lessonArray objectAtIndex:0] : @"Lesson";
+    NSString *englishTitle = lessonArray.count > 1 ? [lessonArray objectAtIndex:1] : @"";
+    NSString *chineseTitle = lessonArray.count > 2 ? [lessonArray objectAtIndex:2] : @"";
+    
+    UIView *cardView = [Utility nceCardViewWithFrame:CGRectMake(14.f, 12.f, width - 28.f, 88.f)];
+    [headerView addSubview:cardView];
+    
+    UILabel *lessonLabel = [Utility nceLabelWithFrame:CGRectMake(16.f, 14.f, 72.f, 26.f)
+                                                text:lessonNo
+                                                font:[UIFont boldSystemFontOfSize:13.f]
+                                               color:[Utility nceBrandColor]];
+    lessonLabel.textAlignment = NSTextAlignmentCenter;
+    lessonLabel.backgroundColor = [Utility nceBrandSoftColor];
+    lessonLabel.layer.cornerRadius = 13.f;
+    lessonLabel.layer.masksToBounds = YES;
+    [cardView addSubview:lessonLabel];
+    
+    UILabel *titleLabel = [Utility nceLabelWithFrame:CGRectMake(104.f, 13.f, width - 150.f, 26.f)
+                                               text:englishTitle
+                                               font:[UIFont boldSystemFontOfSize:18.f]
+                                              color:[Utility nceTextColor]];
+    titleLabel.adjustsFontSizeToFitWidth = YES;
+    titleLabel.minimumScaleFactor = 0.78f;
+    [cardView addSubview:titleLabel];
+    
+    UILabel *subTitleLabel = [Utility nceLabelWithFrame:CGRectMake(104.f, 43.f, width - 150.f, 22.f)
+                                                  text:chineseTitle
+                                                  font:[UIFont systemFontOfSize:14.f]
+                                                 color:[Utility nceSecondaryTextColor]];
+    [cardView addSubview:subTitleLabel];
+    
+    return headerView;
+}
+
+- (void)goLessonWords
+{
+    WordViewController *wordController = [[WordViewController alloc] initWithBookId:_bookId
+                                                                         withLesson:_lesson
+                                                                       withFunction:1];
+    wordController.titleString = @"单词训练";
+    [self.navigationController pushViewController:wordController animated:YES];
 }
 
 @end
