@@ -160,7 +160,7 @@ static NSString *NCEWordSoundPath(NSString *word)
     }
     
     CGFloat width = tableView.frame.size.width;
-    CGFloat height = tableView.frame.size.height/8;
+    //CGFloat height = tableView.frame.size.height/8;
     
     if (indexPath.row == 1) {
         CGFloat cardHeight = [self tableView:tableView heightForRowAtIndexPath:indexPath] - 12.f;

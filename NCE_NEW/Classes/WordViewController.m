@@ -50,10 +50,15 @@ static NSString *NCEWordAssetPath(NSString *folder, NSString *word, NSString *fi
     
     UILabel *_englishLabel;
     UILabel *_countLabel;
+    UILabel *_wordProgressLabel;
     
     UIView *_chineseView;
     UILabel *_chineseLabel;
     UIImageView *_wordImageView;
+    
+    UIButton *_strangeButton;
+    UIButton *_vagueButton;
+    UIButton *_familiarButton;
 }
 
 - (void)initData;
@@ -69,6 +74,9 @@ static NSString *NCEWordAssetPath(NSString *folder, NSString *word, NSString *fi
 - (void)showEnglish;
 - (void)showChinese;
 - (void)repeat;
+- (void)refreshWordStatusButtons;
+- (void)refreshWordProgress;
+- (int)statusForCurrentWord;
 
 @end
 
@@ -160,11 +168,11 @@ static NSString *NCEWordAssetPath(NSString *folder, NSString *word, NSString *fi
     
     _wordImageView = [[UIImageView alloc] initWithFrame:CGRectMake(0, 0, 0, 0)];
     [_chineseView addSubview:_wordImageView];
-    UILabel *progressLabel = [Utility nceLabelWithFrame:CGRectMake(18.f, 207.f, contentWidth - 36.f, 18.f)
-                                                  text:@"第一册单词进度"
-                                                  font:[UIFont systemFontOfSize:12.f]
-                                                 color:[Utility nceSecondaryTextColor]];
-    [wordCard addSubview:progressLabel];
+    _wordProgressLabel = [Utility nceLabelWithFrame:CGRectMake(18.f, 207.f, contentWidth - 36.f, 18.f)
+                                               text:@"第一册单词进度"
+                                               font:[UIFont systemFontOfSize:12.f]
+                                              color:[Utility nceSecondaryTextColor]];
+    [wordCard addSubview:_wordProgressLabel];
     
     CGFloat startPosy = CGRectGetMaxY(wordCard.frame) + 10.f;
     [self addBottomView:startPosy];
@@ -278,6 +286,9 @@ static NSString *NCEWordAssetPath(NSString *folder, NSString *word, NSString *fi
         self.navigationItem.rightBarButtonItem = [[UIBarButtonItem alloc] initWithCustomView:lessonLabel];
     }
     
+    [self refreshWordStatusButtons];
+    [self refreshWordProgress];
+    
 }
 
 - (void)addBottomView:(CGFloat)startPosy
@@ -301,29 +312,29 @@ static NSString *NCEWordAssetPath(NSString *folder, NSString *word, NSString *fi
     [statusCard addSubview:hintLabel];
     
     CGFloat statusButtonWidth = (CGRectGetWidth(statusCard.frame) - 48.f) / 3.f;
-    UIButton *strangeButton = [Utility nceTextButtonWithFrame:CGRectMake(16.f, 42.f, statusButtonWidth, 34.f)
-                                                         text:@"陌生"
-                                              backgroundColor:[UIColor colorWithRed:255/255.f green:238/255.f blue:233/255.f alpha:1.f]
-                                                    textColor:[Utility nceAccentColor]];
-    [strangeButton addTarget:self action:@selector(signWord:) forControlEvents:UIControlEventTouchUpInside];
-    strangeButton.tag = 101;
-    [statusCard addSubview:strangeButton];
+    _strangeButton = [Utility nceTextButtonWithFrame:CGRectMake(16.f, 42.f, statusButtonWidth, 34.f)
+                                                text:@"陌生"
+                                     backgroundColor:[UIColor colorWithRed:255/255.f green:238/255.f blue:233/255.f alpha:1.f]
+                                           textColor:[Utility nceAccentColor]];
+    [_strangeButton addTarget:self action:@selector(signWord:) forControlEvents:UIControlEventTouchUpInside];
+    _strangeButton.tag = 101;
+    [statusCard addSubview:_strangeButton];
     
-    UIButton *vagueButton = [Utility nceTextButtonWithFrame:CGRectMake(24.f + statusButtonWidth, 42.f, statusButtonWidth, 34.f)
-                                                       text:@"模糊"
-                                            backgroundColor:[UIColor colorWithRed:255/255.f green:247/255.f blue:225/255.f alpha:1.f]
-                                                  textColor:[UIColor colorWithRed:213/255.f green:148/255.f blue:45/255.f alpha:1.f]];
-    [vagueButton addTarget:self action:@selector(signWord:) forControlEvents:UIControlEventTouchUpInside];
-    vagueButton.tag = 103;
-    [statusCard addSubview:vagueButton];
+    _vagueButton = [Utility nceTextButtonWithFrame:CGRectMake(24.f + statusButtonWidth, 42.f, statusButtonWidth, 34.f)
+                                              text:@"模糊"
+                                   backgroundColor:[UIColor colorWithRed:255/255.f green:247/255.f blue:225/255.f alpha:1.f]
+                                         textColor:[UIColor colorWithRed:213/255.f green:148/255.f blue:45/255.f alpha:1.f]];
+    [_vagueButton addTarget:self action:@selector(signWord:) forControlEvents:UIControlEventTouchUpInside];
+    _vagueButton.tag = 103;
+    [statusCard addSubview:_vagueButton];
     
-    UIButton *familiarButton = [Utility nceTextButtonWithFrame:CGRectMake(32.f + statusButtonWidth * 2.f, 42.f, statusButtonWidth, 34.f)
-                                                          text:@"认识"
-                                               backgroundColor:[Utility nceBrandSoftColor]
-                                                     textColor:[Utility nceBrandColor]];
-    [familiarButton addTarget:self action:@selector(signWord:) forControlEvents:UIControlEventTouchUpInside];
-    familiarButton.tag = 102;
-    [statusCard addSubview:familiarButton];
+    _familiarButton = [Utility nceTextButtonWithFrame:CGRectMake(32.f + statusButtonWidth * 2.f, 42.f, statusButtonWidth, 34.f)
+                                                 text:@"认识"
+                                      backgroundColor:[Utility nceBrandSoftColor]
+                                            textColor:[Utility nceBrandColor]];
+    [_familiarButton addTarget:self action:@selector(signWord:) forControlEvents:UIControlEventTouchUpInside];
+    _familiarButton.tag = 102;
+    [statusCard addSubview:_familiarButton];
     
     CGFloat actionY = CGRectGetMaxY(statusCard.frame) + 12.f;
     CGFloat actionWidth = CGRectGetWidth(backgroundView.frame);
@@ -471,30 +482,102 @@ static NSString *NCEWordAssetPath(NSString *folder, NSString *word, NSString *fi
     UIButton *button = (UIButton *)sender;
     int status = (int)button.tag-100;
     
-    sqlite3 *database;
-    //    NSString *dbPath = [[NSBundle mainBundle] pathForResource:@"data/NCE" ofType:@"db"];
-    NSString *dbPath = [[NSHomeDirectory() stringByAppendingPathComponent:@"Documents"] stringByAppendingPathComponent:@"NCE.db"];
-    
-    if (sqlite3_open([dbPath UTF8String], &database) == SQLITE_OK) {
-        //        NSLog(@"ok");
+    sqlite3 *database = NULL;
+    NSString *dbPath = [Utility nceDatabasePath];
+    if (sqlite3_open([dbPath UTF8String], &database) != SQLITE_OK) {
+        if (database) sqlite3_close(database);
+        return;
     }
     
-    NSString *updateSql = [NSString stringWithFormat:@"update words set `word_status`=%d where `word_name`='%@'",status,[[_items objectAtIndex:_currentIndex] objectForKey:@"english"]];
+    NSDictionary *item = [_items objectAtIndex:_currentIndex];
+    NSString *word = [item objectForKey:@"english"];
+    NSString *lessonId = [item objectForKey:@"lesson_id"];
+    const char *updateSql = "update words set word_status=? where word_name=? and book_id=? and lesson_id=?";
     
-    sqlite3_stmt *statement;
-    if (sqlite3_prepare_v2(database, [updateSql UTF8String], -1, &statement, nil)==SQLITE_OK) {
-        //        NSLog(@"select ok.");
-    }
-    
-    if (sqlite3_step(statement) == SQLITE_DONE) {
-        //        NSLog(@"done.");
-    } else {
-        //        NSLog(@"%@, %s",updateSql, sqlite3_errmsg(database));
+    sqlite3_stmt *statement = NULL;
+    if (sqlite3_prepare_v2(database, updateSql, -1, &statement, nil) == SQLITE_OK) {
+        sqlite3_bind_int(statement, 1, status);
+        sqlite3_bind_text(statement, 2, [word UTF8String], -1, SQLITE_TRANSIENT);
+        sqlite3_bind_int(statement, 3, _bookId + 1);
+        sqlite3_bind_int(statement, 4, lessonId.intValue);
+        sqlite3_step(statement);
     }
     
     sqlite3_finalize(statement);
     sqlite3_close(database);
     
+    [self refreshWordStatusButtons];
+    [self refreshWordProgress];
+    
+    [NSObject cancelPreviousPerformRequestsWithTarget:self selector:@selector(next) object:nil];
+    if (_currentIndex < _items.count - 1) {
+        [self performSelector:@selector(next) withObject:nil afterDelay:0.25f];
+    }
+    
+}
+
+- (void)refreshWordStatusButtons
+{
+    int status = [self statusForCurrentWord];
+    NSArray *buttons = @[_strangeButton ?: [UIButton new], _vagueButton ?: [UIButton new], _familiarButton ?: [UIButton new]];
+    for (UIButton *button in buttons) {
+        button.layer.borderWidth = 0.f;
+        button.alpha = 1.f;
+    }
+    
+    UIButton *selectedButton = nil;
+    if (status == 1) selectedButton = _strangeButton;
+    else if (status == 3) selectedButton = _vagueButton;
+    else if (status == 2) selectedButton = _familiarButton;
+    
+    if (selectedButton) {
+        selectedButton.layer.borderWidth = 2.f;
+        selectedButton.layer.borderColor = [Utility nceBrandColor].CGColor;
+        selectedButton.alpha = 0.92f;
+    }
+}
+
+- (void)refreshWordProgress
+{
+    NSDictionary *stats = [Utility nceStudyStats];
+    NSInteger masteredWords = [[stats objectForKey:@"masteredWords"] integerValue];
+    NSInteger familiarWords = [[stats objectForKey:@"familiarWords"] integerValue];
+    NSInteger totalWords = [[stats objectForKey:@"totalWords"] integerValue];
+    _wordProgressLabel.text = [NSString stringWithFormat:@"第一册单词进度  认识 %ld/%ld · 已标记 %ld", (long)masteredWords, (long)totalWords, (long)familiarWords];
+}
+
+- (int)statusForCurrentWord
+{
+    if (_currentIndex < 0 || _currentIndex >= _items.count) {
+        return 0;
+    }
+    
+    sqlite3 *database = NULL;
+    NSString *dbPath = [Utility nceDatabasePath];
+    if (sqlite3_open([dbPath UTF8String], &database) != SQLITE_OK) {
+        if (database) sqlite3_close(database);
+        return 0;
+    }
+    
+    NSDictionary *item = [_items objectAtIndex:_currentIndex];
+    NSString *word = [item objectForKey:@"english"];
+    NSString *lessonId = [item objectForKey:@"lesson_id"];
+    int status = 0;
+    const char *selectSql = "select word_status from words where word_name=? and book_id=? and lesson_id=? limit 1";
+    
+    sqlite3_stmt *statement = NULL;
+    if (sqlite3_prepare_v2(database, selectSql, -1, &statement, nil) == SQLITE_OK) {
+        sqlite3_bind_text(statement, 1, [word UTF8String], -1, SQLITE_TRANSIENT);
+        sqlite3_bind_int(statement, 2, _bookId + 1);
+        sqlite3_bind_int(statement, 3, lessonId.intValue);
+        if (sqlite3_step(statement) == SQLITE_ROW) {
+            status = sqlite3_column_int(statement, 0);
+        }
+    }
+    
+    sqlite3_finalize(statement);
+    sqlite3_close(database);
+    return status;
 }
 
 - (void)showEnglish

@@ -48,6 +48,13 @@ static NSString* const kWordBookViewControllerCellReuseId = @"kWordBookViewContr
     [self addTableView];
 }
 
+- (void)viewWillAppear:(BOOL)animated
+{
+    [super viewWillAppear:animated];
+    [self initData];
+    [self.tableView reloadData];
+}
+
 - (void)didReceiveMemoryWarning {
     [super didReceiveMemoryWarning];
     // Dispose of any resources that can be recreated.

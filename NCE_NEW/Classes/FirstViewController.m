@@ -16,6 +16,8 @@
 #import "TextViewController.h"
 #import "sqlite3.h"
 
+static NSInteger const kNCEDashboardViewTag = 9101;
+
 @interface FirstViewController ()
 {
     CGFloat _scale;
@@ -54,7 +56,11 @@
     self.navigationController.navigationBar.titleTextAttributes = dic;
     self.navigationItem.title = @"新概念第一册";
     [self addSettingButton];
-    
+}
+
+- (void)viewWillAppear:(BOOL)animated
+{
+    [super viewWillAppear:animated];
     [self initContinueLesson];
     [self addDashboard];
 }
@@ -88,6 +94,8 @@
 
 - (void)initContinueLesson
 {
+    _continueLesson = nil;
+    
     NSDictionary *lastLesson = [Utility nceLastLesson];
     if (lastLesson) {
         _continueLesson = lastLesson;
@@ -114,24 +122,27 @@
 
 - (void)addDashboard
 {
+    [[self.view viewWithTag:kNCEDashboardViewTag] removeFromSuperview];
+    
     NSDictionary *statsDictionary = [Utility nceStudyStats];
     NSInteger completedLessons = [[statsDictionary objectForKey:@"completedLessons"] integerValue];
     NSInteger totalLessons = [[statsDictionary objectForKey:@"totalLessons"] integerValue];
-    NSInteger masteredWords = [[statsDictionary objectForKey:@"masteredWords"] integerValue];
+    NSInteger familiarWords = [[statsDictionary objectForKey:@"familiarWords"] integerValue];
     NSInteger totalWords = [[statsDictionary objectForKey:@"totalWords"] integerValue];
     NSInteger wrongWords = [[statsDictionary objectForKey:@"wrongWords"] integerValue];
     
-    CGFloat safeTop = 0.f;
-    if (@available(iOS 11.0, *)) {
-        safeTop = self.view.safeAreaInsets.top;
-    }
-    CGFloat contentTop = safeTop + 66.f;
+    CGFloat navigationBottom = CGRectGetMaxY(self.navigationController.navigationBar.frame);
+    CGFloat contentTop = navigationBottom + ([Utility isPad] ? 40.f : 34.f);
     CGFloat margin = [Utility isPad] ? 80.f : 18.f;
     CGFloat width = CGRectGetWidth(self.view.bounds) - margin * 2.f;
     
     UIScrollView *scrollView = [[UIScrollView alloc] initWithFrame:self.view.bounds];
+    scrollView.tag = kNCEDashboardViewTag;
     scrollView.backgroundColor = [UIColor clearColor];
     scrollView.alwaysBounceVertical = YES;
+    if (@available(iOS 11.0, *)) {
+        scrollView.contentInsetAdjustmentBehavior = UIScrollViewContentInsetAdjustmentNever;
+    }
     [self.view addSubview:scrollView];
     
     UILabel *titleLabel = [Utility nceLabelWithFrame:CGRectMake(margin, contentTop, width - 90.f, 32.f)
@@ -215,7 +226,7 @@
     [continueCard addSubview:continueButton];
     
     NSArray *stats = @[@[@"课文", [NSString stringWithFormat:@"%ld/%ld", (long)completedLessons, (long)totalLessons]],
-                       @[@"单词", [NSString stringWithFormat:@"%ld/%ld", (long)masteredWords, (long)totalWords]],
+                       @[@"单词", [NSString stringWithFormat:@"%ld/%ld", (long)familiarWords, (long)totalWords]],
                        @[@"错题", [NSString stringWithFormat:@"%ld词", (long)wrongWords]]];
     CGFloat statY = CGRectGetMaxY(continueCard.frame) + 14.f;
     CGFloat statWidth = (width - 16.f) / 3.f;

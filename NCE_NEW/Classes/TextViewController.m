@@ -81,6 +81,10 @@ static NSString* const kTextViewControllerCellReuseId = @"kTextViewControllerCel
     //self.showTimes = 1;
     [Utility nceSaveLastLessonId:[_lesson objectForKey:@"id"] lessonName:[_lesson objectForKey:@"name"]];
     
+    if (![Utility isPad]) {
+        self.bannerHeight = 20.f;
+    }
+    
     [self addTableView];
     
     [self addRightButton];
@@ -120,22 +124,22 @@ static NSString* const kTextViewControllerCellReuseId = @"kTextViewControllerCel
     NSDictionary *contentItem = [self getContentItem:indexPath.row];
     CGFloat englishHeight = [[contentItem objectForKey:@"englishHeight"] floatValue];
     CGFloat chineseHeight = _showChinese ? [[contentItem objectForKey:@"chineseHeight"] floatValue] : 0.f;
-    CGFloat cardHeight = englishHeight + chineseHeight + (_showChinese ? 44.f : 30.f);
+    CGFloat cardHeight = englishHeight + chineseHeight + (_showChinese ? 24.f : 22.f);
     BOOL isCurrent = _currentIndex == indexPath.row;
     
-    UIView *cardView = [[UIView alloc] initWithFrame:CGRectMake(14.f, 5.f, tableView.frame.size.width - 28.f, cardHeight)];
+    UIView *cardView = [[UIView alloc] initWithFrame:CGRectMake(14.f, 3.f, tableView.frame.size.width - 28.f, cardHeight)];
     cardView.backgroundColor = isCurrent ? [Utility nceBrandSoftColor] : [UIColor whiteColor];
     cardView.layer.cornerRadius = 10.f;
     [cell.contentView addSubview:cardView];
     
-    UILabel *indexLabel = [Utility nceLabelWithFrame:CGRectMake(12.f, 12.f, 28.f, 20.f)
+    UILabel *indexLabel = [Utility nceLabelWithFrame:CGRectMake(12.f, 9.f, 28.f, 20.f)
                                                text:[NSString stringWithFormat:@"%02ld", (long)indexPath.row + 1]
                                                font:[UIFont boldSystemFontOfSize:12.f]
                                               color:isCurrent ? [Utility nceBrandColor] : [Utility nceSecondaryTextColor]];
     [cardView addSubview:indexLabel];
     
     // english title
-    UILabel *titleLabel = [[UILabel alloc] initWithFrame:CGRectMake(46.f, 12.f, tableView.frame.size.width - 92.f, englishHeight)];
+    UILabel *titleLabel = [[UILabel alloc] initWithFrame:CGRectMake(46.f, 9.f, tableView.frame.size.width - 92.f, englishHeight)];
     titleLabel.backgroundColor = [UIColor clearColor];
     titleLabel.font = [UIFont boldSystemFontOfSize:16.f];
     titleLabel.textColor = isCurrent ? [Utility nceBrandColor] : [Utility nceTextColor];
@@ -148,7 +152,7 @@ static NSString* const kTextViewControllerCellReuseId = @"kTextViewControllerCel
     [cardView addSubview:titleLabel];
     
     // chinese title
-    UILabel *subTitleLabel = [[UILabel alloc] initWithFrame:CGRectMake(46.f, CGRectGetMaxY(titleLabel.frame) + 9.f, tableView.frame.size.width - 92.f, [[contentItem objectForKey:@"chineseHeight"] floatValue])];
+    UILabel *subTitleLabel = [[UILabel alloc] initWithFrame:CGRectMake(46.f, CGRectGetMaxY(titleLabel.frame) + 4.f, tableView.frame.size.width - 92.f, [[contentItem objectForKey:@"chineseHeight"] floatValue])];
     subTitleLabel.backgroundColor = [UIColor clearColor];
     subTitleLabel.font = [UIFont systemFontOfSize:14.f];
     subTitleLabel.textColor = isCurrent ? [Utility nceBrandColor] : [Utility nceSecondaryTextColor];
@@ -180,9 +184,9 @@ static NSString* const kTextViewControllerCellReuseId = @"kTextViewControllerCel
     CGFloat contentHeight = [[contentItem objectForKey:@"englishHeight"] floatValue];
     if (_showChinese) {
         contentHeight += [[contentItem objectForKey:@"chineseHeight"] floatValue];
-        contentHeight += 54.f;
+        contentHeight += 32.f;
     } else {
-        contentHeight += 40.f;
+        contentHeight += 30.f;
     }
     
     return contentHeight;
@@ -364,7 +368,7 @@ static NSString* const kTextViewControllerCellReuseId = @"kTextViewControllerCel
     line.backgroundColor = [Utility nceLineColor];
     [backgroundView addSubview:line];
     
-    _sentenceProgressLabel = [Utility nceLabelWithFrame:CGRectMake(16.f, 10.f, 84.f, 24.f)
+    _sentenceProgressLabel = [Utility nceLabelWithFrame:CGRectMake(16.f, 8.f, 72.f, 22.f)
                                                    text:[NSString stringWithFormat:@"%d / %d 句", _currentIndex + 1, (int)_items.count]
                                                    font:[UIFont systemFontOfSize:13.f]
                                                   color:[Utility nceSecondaryTextColor]];
@@ -380,7 +384,7 @@ static NSString* const kTextViewControllerCellReuseId = @"kTextViewControllerCel
     
     // prev
     UIButton *prevButton = [UIButton buttonWithType:UIButtonTypeCustom];
-    prevButton.frame = CGRectMake(self.view.frame.size.width-headerHight*20/9, headerHight*5/18, headerHight*4/9, headerHight*4/9);
+    prevButton.frame = CGRectMake(self.view.frame.size.width - 144.f, 36.f, 30.f, 30.f);
     [prevButton setImage:[UIImage imageNamed:@"prev_normal"] forState:UIControlStateNormal];
     [prevButton setImage:[UIImage imageNamed:@"prev_click"] forState:UIControlStateHighlighted];
     [prevButton addTarget:self action:@selector(prev) forControlEvents:UIControlEventTouchUpInside];
@@ -388,7 +392,7 @@ static NSString* const kTextViewControllerCellReuseId = @"kTextViewControllerCel
     
     // pause
     _pauseButton = [UIButton buttonWithType:UIButtonTypeCustom];
-    _pauseButton.frame = CGRectMake(self.view.frame.size.width-headerHight*15/9, headerHight*2/9, headerHight*5/9, headerHight*5/9);
+    _pauseButton.frame = CGRectMake(self.view.frame.size.width - 97.f, 31.f, 40.f, 40.f);
     [_pauseButton setImage:[UIImage imageNamed:@"pause_normal"] forState:UIControlStateNormal];
     [_pauseButton setImage:[UIImage imageNamed:@"pause_click"] forState:UIControlStateHighlighted];
     [_pauseButton addTarget:self action:@selector(pause) forControlEvents:UIControlEventTouchUpInside];
@@ -396,7 +400,7 @@ static NSString* const kTextViewControllerCellReuseId = @"kTextViewControllerCel
     
     // continue
     _continueButton = [UIButton buttonWithType:UIButtonTypeCustom];
-    _continueButton.frame = CGRectMake(self.view.frame.size.width-headerHight*15/9, headerHight*2/9, headerHight*5/9, headerHight*5/9);
+    _continueButton.frame = CGRectMake(self.view.frame.size.width - 97.f, 31.f, 40.f, 40.f);
     [_continueButton setImage:[UIImage imageNamed:@"play_normal"] forState:UIControlStateNormal];
     [_continueButton setImage:[UIImage imageNamed:@"play_click"] forState:UIControlStateHighlighted];
     [_continueButton addTarget:self action:@selector(continue) forControlEvents:UIControlEventTouchUpInside];
@@ -405,7 +409,7 @@ static NSString* const kTextViewControllerCellReuseId = @"kTextViewControllerCel
     
     // next
     UIButton *nextButton = [UIButton buttonWithType:UIButtonTypeCustom];
-    nextButton.frame = CGRectMake(self.view.frame.size.width-headerHight*7/9, headerHight*5/18, headerHight*4/9, headerHight*4/9);
+    nextButton.frame = CGRectMake(self.view.frame.size.width - 42.f, 36.f, 30.f, 30.f);
     [nextButton setImage:[UIImage imageNamed:@"next_normal"] forState:UIControlStateNormal];
     [nextButton setImage:[UIImage imageNamed:@"next_click"] forState:UIControlStateHighlighted];
     [nextButton addTarget:self action:@selector(next) forControlEvents:UIControlEventTouchUpInside];
@@ -423,7 +427,8 @@ static NSString* const kTextViewControllerCellReuseId = @"kTextViewControllerCel
     UIImage *bgImage = [UIImage imageNamed:@"progressBar_bg"];
     UIImage *newbgImage = [self OriginImage:bgImage scaleToSize:size];
     
-    _contentSlider = [[UISlider alloc] initWithFrame:CGRectMake(118.f, headerHight*4/9, self.view.frame.size.width - headerHight*33/9 - 24.f, headerHight/9)];
+    CGFloat sliderX = 96.f;
+    _contentSlider = [[UISlider alloc] initWithFrame:CGRectMake(sliderX, 15.f, self.view.frame.size.width - sliderX - 16.f, headerHight/9)];
     _contentSlider.maximumValue = (float)_items.count-1;
     _contentSlider.minimumValue = 0.f;
     _contentSlider.value = 0.f;
@@ -436,7 +441,7 @@ static NSString* const kTextViewControllerCellReuseId = @"kTextViewControllerCel
     
     // init playing circle setting
     _circleButton = [UIButton buttonWithType:UIButtonTypeCustom];
-    _circleButton.frame = CGRectMake(self.view.frame.size.width - headerHight*25/9, headerHight*5/18, headerHight*4/9, headerHight*4/9);
+    _circleButton.frame = CGRectMake(116.f, 37.f, 30.f, 30.f);
     [_circleButton setImage:[UIImage imageNamed:@"playing_circle_btn"] forState:UIControlStateNormal];
     [_circleButton setImage:[UIImage imageNamed:@"playing_single_btn"] forState:UIControlStateSelected];
     [_circleButton addTarget:self action:@selector(circleOrSingle:) forControlEvents:UIControlEventTouchUpInside];
@@ -503,7 +508,7 @@ static NSString* const kTextViewControllerCellReuseId = @"kTextViewControllerCel
 
 - (UIView *)lessonHeaderViewWithWidth:(CGFloat)width
 {
-    UIView *headerView = [[UIView alloc] initWithFrame:CGRectMake(0.f, 0.f, width, 116.f)];
+    UIView *headerView = [[UIView alloc] initWithFrame:CGRectMake(0.f, 0.f, width, 96.f)];
     headerView.backgroundColor = [UIColor clearColor];
     
     NSArray *lessonArray = [[_lesson objectForKey:@"name"] componentsSeparatedByString:@"－"];
@@ -511,10 +516,10 @@ static NSString* const kTextViewControllerCellReuseId = @"kTextViewControllerCel
     NSString *englishTitle = lessonArray.count > 1 ? [lessonArray objectAtIndex:1] : @"";
     NSString *chineseTitle = lessonArray.count > 2 ? [lessonArray objectAtIndex:2] : @"";
     
-    UIView *cardView = [Utility nceCardViewWithFrame:CGRectMake(14.f, 12.f, width - 28.f, 88.f)];
+    UIView *cardView = [Utility nceCardViewWithFrame:CGRectMake(14.f, 10.f, width - 28.f, 74.f)];
     [headerView addSubview:cardView];
     
-    UILabel *lessonLabel = [Utility nceLabelWithFrame:CGRectMake(16.f, 14.f, 72.f, 26.f)
+    UILabel *lessonLabel = [Utility nceLabelWithFrame:CGRectMake(16.f, 12.f, 72.f, 26.f)
                                                 text:lessonNo
                                                 font:[UIFont boldSystemFontOfSize:13.f]
                                                color:[Utility nceBrandColor]];
@@ -524,7 +529,7 @@ static NSString* const kTextViewControllerCellReuseId = @"kTextViewControllerCel
     lessonLabel.layer.masksToBounds = YES;
     [cardView addSubview:lessonLabel];
     
-    UILabel *titleLabel = [Utility nceLabelWithFrame:CGRectMake(104.f, 13.f, width - 150.f, 26.f)
+    UILabel *titleLabel = [Utility nceLabelWithFrame:CGRectMake(104.f, 11.f, width - 150.f, 26.f)
                                                text:englishTitle
                                                font:[UIFont boldSystemFontOfSize:18.f]
                                               color:[Utility nceTextColor]];
@@ -532,7 +537,7 @@ static NSString* const kTextViewControllerCellReuseId = @"kTextViewControllerCel
     titleLabel.minimumScaleFactor = 0.78f;
     [cardView addSubview:titleLabel];
     
-    UILabel *subTitleLabel = [Utility nceLabelWithFrame:CGRectMake(104.f, 43.f, width - 150.f, 22.f)
+    UILabel *subTitleLabel = [Utility nceLabelWithFrame:CGRectMake(104.f, 40.f, width - 150.f, 22.f)
                                                   text:chineseTitle
                                                   font:[UIFont systemFontOfSize:14.f]
                                                  color:[Utility nceSecondaryTextColor]];
