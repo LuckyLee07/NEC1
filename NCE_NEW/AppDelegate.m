@@ -7,11 +7,13 @@
 //
 
 #import "AppDelegate.h"
+#import <AVFoundation/AVFoundation.h>
 #import <sqlite3.h>
 
 @interface AppDelegate ()
 
 - (void)configureNavigationBarAppearance;
+- (void)configureAudioSession;
 - (void)pruneDatabaseAtPath:(NSString *)databasePath;
 
 @end
@@ -23,6 +25,8 @@
     // Override point for customization after application launch.
     
     [self checkAndCreateDatabase];
+
+    [self configureAudioSession];
 
     [self configureNavigationBarAppearance];
     
@@ -46,6 +50,22 @@ configurationForConnectingSceneSession:(UISceneSession *)connectingSceneSession
 
 - (void)application:(UIApplication *)application didDiscardSceneSessions:(NSSet<UISceneSession *> *)sceneSessions
 {
+}
+
+- (void)configureAudioSession
+{
+    AVAudioSession *session = [AVAudioSession sharedInstance];
+    NSError *categoryError = nil;
+    [session setCategory:AVAudioSessionCategoryPlayback error:&categoryError];
+    if (categoryError) {
+        NSLog(@"Audio session category failed: %@", categoryError.localizedDescription);
+    }
+
+    NSError *activeError = nil;
+    [session setActive:YES error:&activeError];
+    if (activeError) {
+        NSLog(@"Audio session activation failed: %@", activeError.localizedDescription);
+    }
 }
 
 - (void)configureNavigationBarAppearance

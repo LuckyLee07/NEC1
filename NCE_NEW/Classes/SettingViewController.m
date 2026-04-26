@@ -142,7 +142,7 @@
     [scrollView addSubview:menuCard];
     
     [self addMenuRowToView:menuCard title:@"数据备份与恢复" subtitle:@"学习记录保存在本机" y:0.f];
-    [self addMenuRowToView:menuCard title:@"反馈与联系" subtitle:@"071427li@163.com" y:56.f];
+    [self addMenuRowToView:menuCard title:@"反馈与联系" subtitle:@"欢迎反馈学习体验" y:56.f];
     [self addMenuRowToView:menuCard title:@"隐私说明" subtitle:@"不上传你的学习记录" y:112.f];
     [self addMenuRowToView:menuCard title:@"关于第一册独立版" subtitle:@"专注完成第一册学习闭环" y:168.f];
     
